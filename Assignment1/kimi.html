@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Python 3.12 新特性展示</title>
+    <!-- 引入 Tailwind CSS 进行快速样式设计 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Prism.js 用于 Python 代码语法高亮 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <!-- 引入 Google Fonts 优化字体显示 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+    <style>
+      /* 自定义样式补充 */
+      body {
+        font-family: "Inter", sans-serif;
+        /* 创建紫色渐变背景 */
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+      /* 代码字体设置 */
+      .code-font {
+        font-family: "JetBrains Mono", monospace;
+      }
+      /* 毛玻璃效果卡片：半透明背景+背景模糊 */
+      .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      }
+      /* 代码块容器定位，用于放置复制按钮 */
+      .code-block {
+        position: relative;
+        overflow: hidden;
+      }
+      /* 复制按钮默认隐藏，悬停时显示 */
+      .copy-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 10;
+      }
+      .code-block:hover .copy-btn {
+        opacity: 1;
+      }
+      /* PEP 编号徽章渐变背景 */
+      .pep-badge {
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      }
+      /* 卡片入场动画初始状态 */
+      .animate-in {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+    </style>
+  </head>
+  <body class="p-4 md:p-8">
+    <!-- 主容器：限制最大宽度并居中 -->
+    <div class="max-w-6xl mx-auto">
+      <!-- 页面头部：标题和简介 -->
+      <header class="text-center mb-12 text-white">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Python 3.12</h1>
+        <p class="text-xl opacity-90">三大革命性新特性详解</p>
+        <div class="mt-4 inline-block px-4 py-1 bg-white/20 rounded-full text-sm backdrop-blur-sm border border-white/30">可直接运行的交互式展示</div>
+      </header>
+
+      <!-- 特性卡片网格布局：响应式设计，移动端单列，桌面端三列 -->
+      <div class="grid md:grid-cols-3 gap-6">
+        <!-- 特性 1: PEP 701 - f-string 语法改进 -->
+        <article class="glass-card rounded-2xl p-6 transform hover:-translate-y-2 transition-all duration-300 animate-in">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">f-string 自由化</h2>
+            <!-- PEP 编号徽章 -->
+            <span class="pep-badge text-white text-xs px-3 py-1 rounded-full font-mono font-bold">PEP 701</span>
+          </div>
+
+          <p class="text-gray-600 mb-4 text-sm leading-relaxed">
+            解除了 f-string 的诸多语法限制，现在支持嵌套任意引号、反斜杠转义和多行表达式，无需再为引号冲突烦恼。
+          </p>
+
+          <!-- 代码块容器 -->
+          <div class="code-block rounded-lg bg-gray-900 shadow-inner">
+            <!-- 复制按钮，点击触发 copyCode 函数 -->
+            <button
+              onclick="copyCode(this)"
+              class="copy-btn bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded text-xs backdrop-blur-sm border border-white/20 transition-colors"
+            >
+              复制代码
+            </button>
+            <pre class="!m-0 !bg-transparent"><code class="language-python"># Python 3.12 之前：引号冲突会导致语法错误
+# 现在可以嵌套相同类型的引号
+name = "Python"
+version = 3.12
+
+# 1. 支持嵌套引号（之前必须用不同引号）
+s = f"{'Hello' + ' ' + name}!"
+
+# 2. 支持反斜杠（之前完全禁止）
+path = f"C:\\Users\\{name}\\file.txt"
+regex = f"Pattern: \\d+"
+
+# 3. 多行表达式（无需反斜杠续行）
+result = f"""
+计算结果: {
+    100 + 200 + 
+    300 + 400
+}
+"""
+print(s)
+print(path)</code></pre>
+          </div>
+
+          <!-- 特性标签 -->
+          <div class="mt-4 flex items-center text-xs text-gray-500 font-medium">
+            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+            语法限制大幅放宽
+          </div>
+        </article>
+
+        <!-- 特性 2: PEP 695 - 类型参数语法（泛型简化） -->
+        <article class="glass-card rounded-2xl p-6 transform hover:-translate-y-2 transition-all duration-300 animate-in">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">泛型语法简化</h2>
+            <span class="pep-badge text-white text-xs px-3 py-1 rounded-full font-mono font-bold">PEP 695</span>
+          </div>
+
+          <p class="text-gray-600 mb-4 text-sm leading-relaxed">
+            全新的类型参数声明语法，使用方括号直接声明类型变量，告别繁琐的 TypeVar 定义，让泛型编程更直观。
+          </p>
+
+          <div class="code-block rounded-lg bg-gray-900 shadow-inner">
+            <button
+              onclick="copyCode(this)"
+              class="copy-btn bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded text-xs backdrop-blur-sm border border-white/20 transition-colors"
+            >
+              复制代码
+            </button>
+            <pre class="!m-0 !bg-transparent"><code class="language-python"># Python 3.12 新语法：直接声明类型参数 [T]
+# 无需再写：from typing import TypeVar; T = TypeVar('T')
+
+def process[T](data: T) -> T:
+    """返回输入数据的泛型函数"""
+    return data
+
+class Container[T]:
+    """泛型容器类，T 在类定义时声明"""
+    def __init__(self, value: T) -> None:
+        self.value = value
+    
+    def get(self) -> T:
+        return self.value
+
+# 类型推断示例
+num_box = Container(42)      # 自动推断为 Container[int]
+str_box = Container("hello") # 自动推断为 Container[str]
+
+# 函数使用
+print(process(100))          # 输出: 100
+print(num_box.get())         # 输出: 42</code></pre>
+          </div>
+
+          <div class="mt-4 flex items-center text-xs text-gray-500 font-medium">
+            <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
+            更简洁的泛型编程
+          </div>
+        </article>
+
+        <!-- 特性 3: 改进的错误消息（Error Messages） -->
+        <article class="glass-card rounded-2xl p-6 transform hover:-translate-y-2 transition-all duration-300 animate-in">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold text-gray-800">智能错误提示</h2>
+            <span class="pep-badge text-white text-xs px-3 py-1 rounded-full font-mono font-bold">Enhanced</span>
+          </div>
+
+          <p class="text-gray-600 mb-4 text-sm leading-relaxed">更精确的语法错误定位，针对常见拼写错误（如 import 模块名）提供智能建议，大幅提升调试效率。</p>
+
+          <div class="code-block rounded-lg bg-gray-900 shadow-inner">
+            <button
+              onclick="copyCode(this)"
+              class="copy-btn bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded text-xs backdrop-blur-sm border border-white/20 transition-colors"
+            >
+              复制代码
+            </button>
+            <pre class="!m-0 !bg-transparent"><code class="language-python"># 示例 1：未关闭的括号精确定位
+# 3.12 会指出哪一行括号未关闭，而不仅是文件末尾
+def calculate(x, y
+    return x + y
+
+# 示例 2：拼写错误智能建议
+# 如果你写：import statisitics  （拼写错误）
+# 3.12 会提示：Did you mean: statistics?
+
+# 示例 3：更好的缩进错误提示
+if True:
+print("没有缩进")  # 会指出期望缩进的位置
+
+# 示例 4：SyntaxError 精确位置标记
+print("Hello"  # 会指出缺少右括号的位置</code></pre>
+          </div>
+
+          <div class="mt-4 flex items-center text-xs text-gray-500 font-medium">
+            <span class="w-2 h-2 bg-purple-500 rounded-full mr-2 animate-pulse"></span>
+            开发者体验大幅提升
+          </div>
+        </article>
+      </div>
+
+      <!-- 页面底部信息 -->
+      <footer class="mt-12 text-center text-white/80 text-sm">
+        <p class="mb-2">在终端运行 <code class="bg-white/20 px-2 py-1 rounded font-mono text-xs">python --version</code> 检查您的版本</p>
+        <p class="opacity-60 text-xs">使用 HTML5 + Tailwind CSS + Prism.js 构建 | 零依赖，单文件可直接运行</p>
+      </footer>
+    </div>
+
+    <!-- JavaScript 交互逻辑 -->
+    <script>
+      /**
+       * 复制代码块内容到剪贴板
+       * @param {HTMLElement} btn - 被点击的按钮元素
+       */
+      async function copyCode(btn) {
+        // 获取相邻的 code 元素内的文本内容
+        const codeBlock = btn.nextElementSibling;
+        const code = codeBlock.textContent.trim();
+
+        try {
+          // 使用现代 Clipboard API 写入剪贴板
+          await navigator.clipboard.writeText(code);
+
+          // 提供视觉反馈：更改按钮文字和样式
+          const originalText = btn.textContent;
+          btn.textContent = "已复制!";
+          btn.classList.add("bg-green-500/30", "text-green-300", "border-green-400/30");
+
+          // 2秒后恢复原状
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove("bg-green-500/30", "text-green-300", "border-green-400/30");
+          }, 2000);
+        } catch (err) {
+          // 错误处理：如果复制失败（如权限问题）
+          console.error("复制失败:", err);
+          btn.textContent = "复制失败";
+          setTimeout(() => {
+            btn.textContent = "复制代码";
+          }, 2000);
+        }
+      }
+
+      // DOM 加载完成后执行入场动画
+      document.addEventListener("DOMContentLoaded", () => {
+        const cards = document.querySelectorAll(".animate-in");
+        // 为每个卡片添加延迟入场动画，创造错落有致的视觉效果
+        cards.forEach((card, index) => {
+          setTimeout(() => {
+            card.style.transition = "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)";
+            card.style.opacity = "1";
+            card.style.transform = "translateY(0)";
+          }, index * 150); // 每个卡片延迟 150ms
+        });
+      });
+    </script>
+  </body>
+</html>

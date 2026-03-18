@@ -13,7 +13,7 @@ class SillyFlowChat:
         self,
         api_key: str = "sk-rirzmtgmxgzkbxivknqfemiamzadgasdczezdvrayhmhyfqz",
         base_url: str = "https://api.siliconflow.cn",
-        model: str = "Pro/deepseek-ai/DeepSeek-V3.2",
+        model: str = "Pro/moonshotai/Kimi-K2.5",
     ):
         """
         初始化聊天对象
@@ -110,11 +110,34 @@ class SillyFlowChat:
                                 metrics.append(f"首字耗时：{perf['first_token_time']:.2f}秒")
                             if perf.get("total_time") is not None:
                                 metrics.append(f"总耗时：{perf['total_time']:.2f}秒")
+                            if perf.get("completion_tokens") is not None:
+                                metrics.append(f"Token 数量：{perf['completion_tokens']}")
+                            if perf.get("tokens_per_second") is not None:
+                                metrics.append(f"端到端速度：{perf['tokens_per_second']:.2f} tokens/s")
+                            if perf.get("generation_speed") is not None:
+                                metrics.append(f"纯生成速度：{perf['generation_speed']:.2f} tokens/s")
 
                             if metrics:
                                 f.write(f"> 📊 性能指标：{' | '.join(metrics)}\n\n")
 
                         f.write("---\n\n")
+
+                    # 在文档最后添加所有回答的总性能指标（平均数）
+                    f.write("# 总体性能统计\n\n")
+                    avg_metrics = self._calculate_average_performance()
+                    if avg_metrics:
+                        f.write(f"**平均首字耗时**: {avg_metrics.get('avg_first_token_time', 'N/A')}秒  \n")
+                        f.write(f"**平均总耗时**: {avg_metrics.get('avg_total_time', 'N/A')}秒  \n")
+                        f.write(
+                            f"**平均 Token 数量**: {avg_metrics.get('avg_completion_tokens', 'N/A')} tokens  \n"
+                        )
+                        f.write(
+                            f"**平均端到端速度**: {avg_metrics.get('avg_tokens_per_second', 'N/A')} tokens/s  \n"
+                        )
+                        f.write(
+                            f"**平均纯生成速度**: {avg_metrics.get('avg_generation_speed', 'N/A')} tokens/s  \n"
+                        )
+                        f.write(f"\n**统计基于**: {avg_metrics.get('count', 0)} 条 AI 回复\n")
                 else:
                     # 原有 TXT 格式
                     f.write(f"对话历史 - 模型：{self.model}\n")
@@ -137,8 +160,31 @@ class SillyFlowChat:
                                 f.write(f"  [首字耗时：{perf['first_token_time']:.2f}秒]\n")
                             if perf.get("total_time") is not None:
                                 f.write(f"  [总耗时：{perf['total_time']:.2f}秒]\n")
+                            if perf.get("completion_tokens") is not None:
+                                f.write(f"  [Token 数量：{perf['completion_tokens']}]\n")
+                            if perf.get("tokens_per_second") is not None:
+                                f.write(f"  [端到端速度：{perf['tokens_per_second']:.2f} tokens/s]\n")
+                            if perf.get("generation_speed") is not None:
+                                f.write(f"  [纯生成速度：{perf['generation_speed']:.2f} tokens/s]\n")
 
                         f.write("-" * 80 + "\n")
+
+                    # 在文档最后添加所有回答的总性能指标（平均数）
+                    f.write("\n总体性能统计\n")
+                    avg_metrics = self._calculate_average_performance()
+                    if avg_metrics:
+                        f.write(f"平均首字耗时：{avg_metrics.get('avg_first_token_time', 'N/A')}秒\n")
+                        f.write(f"平均总耗时：{avg_metrics.get('avg_total_time', 'N/A')}秒\n")
+                        f.write(
+                            f"平均 Token 数量：{avg_metrics.get('avg_completion_tokens', 'N/A')} tokens\n"
+                        )
+                        f.write(
+                            f"平均端到端速度：{avg_metrics.get('avg_tokens_per_second', 'N/A')} tokens/s\n"
+                        )
+                        f.write(
+                            f"平均纯生成速度：{avg_metrics.get('avg_generation_speed', 'N/A')} tokens/s\n"
+                        )
+                        f.write(f"统计基于：{avg_metrics.get('count', 0)} 条 AI 回复\n")
 
             print(f"\n对话历史已保存到：{filename} (格式：{format.upper()})")
             return filename
@@ -146,6 +192,77 @@ class SillyFlowChat:
         except Exception as e:
             print(f"保存失败：{str(e)}")
             return None
+
+    def _calculate_average_performance(self) -> Dict[str, float]:
+        """
+        计算所有 AI 回复的平均性能指标
+
+        Returns:
+            包含各项平均性能指标的字典
+        """
+        ai_messages = [
+            msg for msg in self.chat_history if msg["role"] == "assistant" and "performance" in msg
+        ]
+
+        if not ai_messages:
+            return {}
+
+        count = len(ai_messages)
+        total_first_token_time = 0
+        total_total_time = 0
+        total_completion_tokens = 0
+        total_tokens_per_second = 0
+        total_generation_speed = 0
+        valid_first_token_count = 0
+        valid_total_time_count = 0
+        valid_tokens_count = 0
+        valid_tps_count = 0
+        valid_gen_speed_count = 0
+
+        for msg in ai_messages:
+            perf = msg["performance"]
+            if perf.get("first_token_time") is not None:
+                total_first_token_time += perf["first_token_time"]
+                valid_first_token_count += 1
+            if perf.get("total_time") is not None:
+                total_total_time += perf["total_time"]
+                valid_total_time_count += 1
+            if perf.get("completion_tokens") is not None:
+                total_completion_tokens += perf["completion_tokens"]
+                valid_tokens_count += 1
+            if perf.get("tokens_per_second") is not None:
+                total_tokens_per_second += perf["tokens_per_second"]
+                valid_tps_count += 1
+            if perf.get("generation_speed") is not None:
+                total_generation_speed += perf["generation_speed"]
+                valid_gen_speed_count += 1
+
+        avg_first_token_time = (
+            round(total_first_token_time / valid_first_token_count, 2)
+            if valid_first_token_count > 0
+            else None
+        )
+        avg_total_time = (
+            round(total_total_time / valid_total_time_count, 2) if valid_total_time_count > 0 else None
+        )
+        avg_completion_tokens = (
+            round(total_completion_tokens / valid_tokens_count, 2) if valid_tokens_count > 0 else None
+        )
+        avg_tokens_per_second = (
+            round(total_tokens_per_second / valid_tps_count, 2) if valid_tps_count > 0 else None
+        )
+        avg_generation_speed = (
+            round(total_generation_speed / valid_gen_speed_count, 2) if valid_gen_speed_count > 0 else None
+        )
+
+        return {
+            "avg_first_token_time": avg_first_token_time,
+            "avg_total_time": avg_total_time,
+            "avg_completion_tokens": avg_completion_tokens,
+            "avg_tokens_per_second": avg_tokens_per_second,
+            "avg_generation_speed": avg_generation_speed,
+            "count": count,
+        }
 
     def chat(self, user_message: str, stream: bool = False, **kwargs) -> Optional[str]:
         """
@@ -166,9 +283,11 @@ class SillyFlowChat:
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
 
         payload = {"model": self.model, "messages": self.chat_history, "stream": stream}
+        if stream:
+            payload["stream_options"] = {"include_usage": True}
 
         # 固定参数配置
-        payload["max_tokens"] = 4096  # 固定为 4096，确保完整回答
+        payload["max_tokens"] = 8192  # 固定为 4096，确保完整回答
         payload["temperature"] = 0.5  # 固定为 0.5，平衡准确性和速度
         payload["top_p"] = kwargs.get("top_p", 0.7)
 
@@ -187,7 +306,13 @@ class SillyFlowChat:
             print(f"\n[正在思考... 模型：{self.model}]")
 
             # 用于保存性能指标
-            performance_metrics = {"first_token_time": None, "total_time": None}
+            performance_metrics = {
+                "first_token_time": None,
+                "total_time": None,
+                "completion_tokens": None,
+                "tokens_per_second": None,  # 端到端速度（使用总耗时）
+                "generation_speed": None,  # 纯生成速度（使用总耗时 - 首字耗时）
+            }
 
             if stream:
                 # 流式响应
@@ -196,6 +321,8 @@ class SillyFlowChat:
 
                 full_response = ""
                 first_token_time = None
+                completion_tokens = 0
+                estimated_tokens = 0
                 print("AI: ", end="", flush=True)
 
                 for line in response.iter_lines():
@@ -208,6 +335,13 @@ class SillyFlowChat:
 
                             try:
                                 data = json.loads(data_str)
+
+                                # 尝试获取精准的 token 统计
+                                if "usage" in data and data["usage"]:
+                                    usage = data["usage"]
+                                    if "completion_tokens" in usage:
+                                        completion_tokens = usage["completion_tokens"]
+
                                 if "choices" in data and len(data["choices"]) > 0:
                                     delta = data["choices"][0].get("delta", {})
                                     content = delta.get("content", "")
@@ -221,15 +355,42 @@ class SillyFlowChat:
                                             )
 
                                         full_response += content
+                                        estimated_tokens += (
+                                            len(content) // 2
+                                        )  # 简单估算：每 2 个字符约 1 个 token
                                         print(content, end="", flush=True)
                             except json.JSONDecodeError:
                                 continue
 
                 print()  # 换行
 
+                # 如果没有从 API 流获取到确切的 tokens 数量，使用估算兜底
+                if completion_tokens == 0:
+                    completion_tokens = estimated_tokens
+
                 total_time = time.time() - start_time
                 performance_metrics["total_time"] = total_time
-                print(f"[总耗时：{total_time:.2f}s]")
+                performance_metrics["completion_tokens"] = completion_tokens
+
+                # 计算端到端速度（使用总耗时）
+                if total_time > 0:
+                    tokens_per_second = completion_tokens / total_time
+                    performance_metrics["tokens_per_second"] = tokens_per_second
+
+                # 计算纯生成速度（使用总耗时 - 首字耗时）
+                # 这里修复了原来 first_token_time (时间戳) 和 total_time (时间差) 类型不一致导致计算结果大概率为负的 Bug
+                time_to_first = performance_metrics.get("first_token_time")
+                generation_time = total_time - time_to_first if time_to_first else 0
+                if generation_time > 0 and completion_tokens > 0:
+                    generation_speed = completion_tokens / generation_time
+                    performance_metrics["generation_speed"] = generation_speed
+
+                # 显示性能指标
+                print(f"[总耗时：{total_time:.2f}s] [Token 数：{completion_tokens}]")
+                if performance_metrics["tokens_per_second"] is not None:
+                    print(f"[端到端速度：{performance_metrics['tokens_per_second']:.2f} tokens/s]")
+                if performance_metrics["generation_speed"] is not None:
+                    print(f"[纯生成速度：{performance_metrics['generation_speed']:.2f} tokens/s]")
 
                 # 添加 AI 回复到历史（包含性能指标）
                 ai_message = {
@@ -248,9 +409,26 @@ class SillyFlowChat:
                 result = response.json()
                 ai_response = result["choices"][0]["message"]["content"]
 
+                # 从 API 响应中获取 token 信息（如果有）
+                usage = result.get("usage", {})
+                completion_tokens = usage.get("completion_tokens", len(ai_response) // 2)  # 如果没有则估算
+
                 total_time = time.time() - start_time
                 performance_metrics["total_time"] = total_time
-                print(f"[响应耗时：{total_time:.2f}s]")
+                performance_metrics["completion_tokens"] = completion_tokens
+
+                # 计算端到端速度（使用总耗时）
+                if total_time > 0:
+                    tokens_per_second = completion_tokens / total_time
+                    performance_metrics["tokens_per_second"] = tokens_per_second
+
+                # 非流式模式无法精确获取首字耗时，generation_speed 设为 None
+                # 如果需要，可以用总耗时的某个比例估算，但不够准确
+                performance_metrics["generation_speed"] = None
+
+                print(f"[响应耗时：{total_time:.2f}s] [Token 数：{completion_tokens}]")
+                if performance_metrics["tokens_per_second"] is not None:
+                    print(f"[端到端速度：{performance_metrics['tokens_per_second']:.2f} tokens/s]")
 
                 # 添加 AI 回复到历史（包含性能指标）
                 ai_message = {"role": "assistant", "content": ai_response, "performance": performance_metrics}
@@ -286,8 +464,8 @@ def main():
     # 可选配置
     print("\n可选配置（直接回车使用默认值）：")
     model = (
-        input("模型名称 [默认：Pro/deepseek-ai/DeepSeek-V3.2（快速响应）]: ").strip()
-        or "Pro/deepseek-ai/DeepSeek-V3.2"
+        input("模型名称 [默认：Pro/moonshotai/Kimi-K2.5（快速响应）]: ").strip()
+        or "Pro/moonshotai/Kimi-K2.5"
     )
     base_url = input("API 地址 [默认：https://api.siliconflow.cn]: ").strip() or "https://api.siliconflow.cn"
     save_format = input("保存格式 [默认：md (支持 txt/md)]: ").strip().lower() or "md"
@@ -296,12 +474,12 @@ def main():
     print(f"\n当前选择的模型：{model}")
     print("提示：如果响应速度慢，可以尝试以下更快的模型:")
     print("  - Qwen/Qwen2.5-7B-Instruct (推荐，速度快)")
-    print("  - Pro/deepseek-ai/DeepSeek-V3.2 (较慢但更智能)")
+    print("  - Pro/moonshotai/Kimi-K2.5 (较慢但更智能)")
     print("  - 其他模型请参考硅基流动文档")
 
     # 性能优化参数配置（固定参数）
     print("\n参数配置（已固定）：")
-    max_tokens = 2048  # 固定为 2048
+    max_tokens = 8192  # 固定为 8192
     temperature = 0.5  # 固定为 0.5
     print(f"  - max_tokens: {max_tokens} (固定)")
     print(f"  - temperature: {temperature} (固定)")
@@ -356,7 +534,7 @@ def main():
                 print(f"\n⚠️ 提示：mode 命令已废弃，请使用以下命令临时调整参数:\n")
                 print("   - 'set max_tokens <数值>' : 临时修改 max_tokens")
                 print("   - 'set temperature <数值>' : 临时修改 temperature")
-                print("   - 'reset params' : 恢复固定参数 (max_tokens=2048, temperature=0.5)\n")
+                print("   - 'reset params' : 恢复固定参数 (max_tokens=8192, temperature=0.5)\n")
                 continue
 
             # 临时参数调整
@@ -369,7 +547,7 @@ def main():
 
                         if param_name == "max_tokens":
                             max_tokens = int(param_value)
-                            print(f"\n✅ max_tokens 已临时设置为：{max_tokens} (下次对话恢复为 2048)\n")
+                            print(f"\n✅ max_tokens 已临时设置为：{max_tokens} (下次对话恢复为 8192)\n")
                         elif param_name == "temperature":
                             temperature = param_value
                             print(f"\n✅ temperature 已临时设置为：{temperature} (下次对话恢复为 0.5)\n")
@@ -383,9 +561,9 @@ def main():
 
             # 恢复固定参数
             elif user_input.lower() == "reset params":
-                max_tokens = 2048
+                max_tokens = 8192
                 temperature = 0.5
-                print(f"\n✅ 已恢复固定参数：max_tokens=2048, temperature=0.5\n")
+                print(f"\n✅ 已恢复固定参数：max_tokens=8192, temperature=0.5\n")
                 continue
 
             if not user_input:
