@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maze Pathfinding Visualizer</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Glassmorphism Sidebar / Controls -->
+      <div class="glass-panel controls">
+        <h1>Maze Visualizer</h1>
+
+        <div class="control-group">
+          <label for="algorithm">Algorithm:</label>
+          <select id="algorithm">
+            <option value="dfs">Depth-First Search (DFS)</option>
+            <option value="dfs_brute">Powerful DFS (All Paths)</option>
+
+            <option value="bfs" selected>Breadth-First Search (BFS)</option>
+            <option value="bidirectional_bfs">Bidirectional BFS</option>
+            <option value="dijkstra">Dijkstra's Algorithm</option>
+            <option value="astar">A* Search</option>
+            <option value="weighted_astar">Weighted A*</option>
+            <option value="greedy">Greedy Best-First Search</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Grid Size:</label>
+          <div style="display: flex; gap: 10px">
+            <div style="flex: 1">
+              <label for="grid-rows" style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.7)">Rows:</label>
+              <input type="number" id="grid-rows" min="1" max="100" value="25" style="width: 100%" />
+            </div>
+            <div style="flex: 1">
+              <label for="grid-cols" style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.7)">Cols:</label>
+              <input type="number" id="grid-cols" min="1" max="100" value="45" style="width: 100%" />
+            </div>
+          </div>
+          <button id="btn-apply-size" style="margin-top: 8px; padding: 8px; font-size: 0.9rem">Apply Size</button>
+        </div>
+
+        <div class="control-group">
+          <label for="speed">Animation Speed:</label>
+          <input type="range" id="speed" min="1" max="100" value="50" />
+        </div>
+
+        <div class="button-group">
+          <button id="btn-generate-maze">Random Maze</button>
+          <button id="btn-clear-board">Clear Board</button>
+          <button id="btn-clear-path">Clear Path</button>
+        </div>
+
+        <button id="btn-start" class="primary-btn">Visualize!</button>
+
+        <!-- Comparison Panel -->
+        <div class="comparison-panel" id="comparison-panel">
+          <h3>Statistics</h3>
+          <p><strong>Visited Nodes:</strong> <span id="stat-visited">0</span></p>
+          <p><strong>Path Length:</strong> <span id="stat-path">0</span></p>
+          <p><strong>Time (ms):</strong> <span id="stat-time">0</span></p>
+        </div>
+      </div>
+
+      <!-- Main Grid Area -->
+      <div class="glass-panel grid-container" id="grid-container">
+        <div id="grid"></div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
