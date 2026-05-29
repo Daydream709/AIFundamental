@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__zread__get_repo_structure",
+      "mcp__zread__search_doc",
+      "mcp__zread__read_file",
+      "WebSearch",
+      "Bash(python -m venv venv)",
+      "Bash(./venv/Scripts/python.exe -c \"import torch; print\\(torch.__version__\\)\")",
+      "Bash(./venv/Scripts/python.exe -c ':*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)"
+    ]
+  }
+}

@@ -1,0 +1,2 @@
+model,dataset,seq_len,pred_len,MSE,MAE,RMSE,MAPE,SMAPE,Params(M),FLOPs(G),InferTime(ms),GPUMem(MB),loss_type,extra,timestamp
+TestModel,TestData,96,96,0.1,0.2,0.3,5.0,10.0,0,0,0,0,MSE,,2026-05-29 13:12:52
