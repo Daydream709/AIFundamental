@@ -1,18 +1,17 @@
 """
-每个数据集的配置覆盖 — 在 BaseConfig 基础上覆盖数据集特定参数
+每个数据集的配置覆盖 — 按照 FinalProject v2.0 计划
 
-最终保留 6 个数据集:
+最终保留 4 个数据集:
   纯时序 (3): ETTm2, Weather, Electricity
-  多模态 (3): Energy, Environment, Health — 来自 Time-MMD (NeurIPS 2024)
+  多模态 (1): Environment — 包含文本(环境报告+搜索摘要)
 """
 from configs.base_config import BaseConfig
-from dataclasses import dataclass
 
 
 def get_dataset_config(dataset_name: str, seq_len: int = 96, pred_len: int = 96) -> BaseConfig:
     """根据数据集名称返回对应的配置"""
     configs = {
-        # ===== 纯时序数据集 =====
+        # ===== 纯时序数据集 (3) =====
         'ETTm2': BaseConfig(
             data='ETTm2', data_path='ETTm2.csv',
             features='M', target='OT', freq='h',
@@ -30,30 +29,19 @@ def get_dataset_config(dataset_name: str, seq_len: int = 96, pred_len: int = 96)
             features='M', target='OT', freq='h',
             enc_in=321, dec_in=321, c_out=321,
             seq_len=seq_len, pred_len=pred_len, label_len=seq_len // 2,
-            batch_size=16, d_model=256, d_ff=1024,
+            batch_size=16,  # 显存限制: 321变量需要较小batch
         ),
 
-        # ===== 多模态数据集 (Time-MMD, NeurIPS 2024) =====
-        'Energy': BaseConfig(
-            data='Energy', data_path='Energy.csv',
-            features='M', target='OT', freq='w',
-            enc_in=9, dec_in=9, c_out=9,
-            seq_len=seq_len, pred_len=pred_len, label_len=seq_len // 2,
-            use_text=True,
-        ),
+        # ===== 多模态数据集 (1) =====
         'Environment': BaseConfig(
             data='Environment', data_path='Environment.csv',
             features='M', target='OT', freq='d',
             enc_in=6, dec_in=6, c_out=6,
             seq_len=seq_len, pred_len=pred_len, label_len=seq_len // 2,
             use_text=True,
-        ),
-        'Health': BaseConfig(
-            data='Health', data_path='Health.csv',
-            features='M', target='OT', freq='w',
-            enc_in=7, dec_in=7, c_out=7,
-            seq_len=seq_len, pred_len=pred_len, label_len=seq_len // 2,
-            use_text=True,
+            # 文本模态说明:
+            # - report: 环境报告 (宏观政策/年度总结, ~156条)
+            # - search: 相关搜索摘要 (公众关注度, ~2,272条)
         ),
     }
     if dataset_name not in configs:

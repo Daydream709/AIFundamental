@@ -1,10 +1,12 @@
 """
-统一训练/验证/测试循环 — 支持混合精度、早停、梯度累积
+统一训练/验证/测试循环 — FinalProject v2.0
+支持: 混合精度(AMP)、早停(EarlyStopping)、概率输出(GaussianNLL)
 """
 import os
 import time
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.amp import autocast, GradScaler
 from tqdm import tqdm
 from exp.exp_basic import ExpBasic
@@ -15,15 +17,33 @@ from utils.result_logger import ResultLogger
 
 
 class ExpTrain(ExpBasic):
-    """完整的训练/验证/测试流程"""
+    """完整的训练/验证/测试流程 — v2.0"""
 
     def __init__(self, config):
         super().__init__(config)
         self.scaler = GradScaler('cuda', enabled=config.use_amp)
         self.logger = ResultLogger()
+        self.use_probabilistic = getattr(config, 'use_probabilistic', False)
 
     def _get_data(self, flag):
         return data_provider(self.config, flag)
+
+    def _forward_pass(self, model, x_enc, x_mark_enc, x_dec, x_mark_dec):
+        """
+        统一前向传播 — 处理标准输出和概率输出
+
+        Returns:
+            pred: [B, F, C] (均值)
+            logvar: [B, F, C] 或 None
+        """
+        out = model(x_enc, x_mark_enc, x_dec, x_mark_dec)
+
+        if isinstance(out, tuple):
+            # 概率输出: (mean, logvar)
+            mean, logvar = out
+            return mean, logvar
+        else:
+            return out, None
 
     def train(self):
         """完整训练流程"""
@@ -69,18 +89,23 @@ class ExpTrain(ExpBasic):
             batch = [b.to(self.device) for b in batch]
             x_enc, x_y, x_mark_enc, x_mark_y = batch[0], batch[1], batch[2], batch[3]
 
-            # 构造 decoder 输入
             x_dec = torch.zeros_like(x_y[:, -self.config.pred_len:, :])
             x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
-
-            # 标签: 只取预测部分
             true = x_y[:, -self.config.pred_len:, :]
 
             optimizer.zero_grad()
 
             with autocast('cuda', enabled=self.config.use_amp):
-                pred = self.model(x_enc, x_mark_enc, x_dec, x_mark_dec)
-                loss = criterion(pred, true)
+                pred, logvar = self._forward_pass(
+                    self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
+                )
+
+                if logvar is not None and self.config.loss == 'GaussianNLL':
+                    # Gaussian NLL: loss = 0.5 * (logvar + (true-mean)^2 / exp(logvar))
+                    var = torch.exp(logvar) + 1e-8
+                    loss = 0.5 * (logvar + (true - pred) ** 2 / var).mean()
+                else:
+                    loss = criterion(pred, true)
 
             self.scaler.scale(loss).backward()
             self.scaler.step(optimizer)
@@ -106,8 +131,15 @@ class ExpTrain(ExpBasic):
                 true = x_y[:, -self.config.pred_len:, :]
 
                 with autocast('cuda', enabled=self.config.use_amp):
-                    pred = self.model(x_enc, x_mark_enc, x_dec, x_mark_dec)
-                    loss = criterion(pred, true)
+                    pred, logvar = self._forward_pass(
+                        self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
+                    )
+
+                    if logvar is not None and self.config.loss == 'GaussianNLL':
+                        var = torch.exp(logvar) + 1e-8
+                        loss = 0.5 * (logvar + (true - pred) ** 2 / var).mean()
+                    else:
+                        loss = criterion(pred, true)
 
                 total_loss += loss.item()
                 n_batches += 1
@@ -131,7 +163,10 @@ class ExpTrain(ExpBasic):
                 x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
                 true = x_y[:, -self.config.pred_len:, :]
 
-                pred = self.model(x_enc, x_mark_enc, x_dec, x_mark_dec)
+                pred, _ = self._forward_pass(
+                    self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
+                )
+                # pred is already the mean
 
                 preds.append(pred.cpu().numpy())
                 trues.append(true.cpu().numpy())
@@ -153,8 +188,10 @@ class ExpTrain(ExpBasic):
             loss_type=self.config.loss,
         )
 
-        print(f'\n  Test Results ({self.config.model} on {self.config.data}, H={self.config.seq_len}, F={self.config.pred_len}):')
-        print(f'    MSE={mse:.6f}, MAE={mae:.6f}, RMSE={rmse:.6f}, MAPE={mape:.4f}%, SMAPE={smape:.4f}%')
+        print(f'\n  Test Results ({self.config.model} on {self.config.data}, '
+              f'H={self.config.seq_len}, F={self.config.pred_len}):')
+        print(f'    MSE={mse:.6f}, MAE={mae:.6f}, RMSE={rmse:.6f}, '
+              f'MAPE={mape:.4f}%, SMAPE={smape:.4f}%')
 
         return {'mse': mse, 'mae': mae, 'rmse': rmse, 'mape': mape, 'smape': smape}
 

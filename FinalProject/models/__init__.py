@@ -1,41 +1,44 @@
 """
-模型注册表
-- thuml 官方模型通过完整路径导入
-- 自定义创新模型从项目 models/ 导入
+模型注册表 — 按照 FinalProject v2.0 计划
+7个模型，覆盖5大架构: MLP / Transformer / CNN / SSM / 轻量级
+
+- DLinear (MLP)         — thuml 官方实现
+- PatchTST (Transformer) — thuml 官方实现
+- TimesNet (CNN)         — thuml 官方实现
+- Mamba (SSM)            — thuml 官方实现
+- SparseTSF (轻量级)     — 自研实现（thuml无此模型）
+- KANiTransformer (自研) — KAN + 倒置Transformer
+- LiteSparseNet (自研)   — 稀疏采样 + 分组轻量MLP
 """
 import sys, os
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _THUML_ROOT = os.path.join(_PROJECT_ROOT, 'third_party', 'TimeSeriesLibrary')
 
-# 确保路径: 项目根 > thuml库 (thuml的utils/masking等需要被找到)
+# 确保路径: 项目根 > thuml库
 for p in [_PROJECT_ROOT, _THUML_ROOT]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-# thuml 官方实现
+# thuml 官方实现 — 4个基线模型
 from third_party.TimeSeriesLibrary.models.DLinear import Model as DLinear
 from third_party.TimeSeriesLibrary.models.PatchTST import Model as PatchTST
-from third_party.TimeSeriesLibrary.models.iTransformer import Model as iTransformer
-from third_party.TimeSeriesLibrary.models.TimeMixer import Model as TimeMixer
-try:
-    from third_party.TimeSeriesLibrary.models.Chronos2 import Model as Chronos2
-except ImportError:
-    Chronos2 = None
+from third_party.TimeSeriesLibrary.models.TimesNet import Model as TimesNet
+# 使用 MambaSimple (纯PyTorch实现, 无需mamba_ssm包, 接口与Mamba一致)
+from third_party.TimeSeriesLibrary.models.MambaSimple import Model as Mamba
 
-# 自定义创新模型
-from models.TimeKAN import Model as TimeKAN
+# 自研实现 — 3个创新模型
+from models.SparseTSF import Model as SparseTSF
 from models.kan_iTransformer import Model as KANiTransformer
-from models.mamba_transformer_dual import Model as MambaTransformerDual
-from models.multimodal_fusion import Model as MultimodalFusion
+from models.LiteSparseNet import Model as LiteSparseNet
 
 MODEL_REGISTRY = {
+    # 基线 (4个, thuml)
     'DLinear': DLinear,
     'PatchTST': PatchTST,
-    'iTransformer': iTransformer,
-    'TimeMixer': TimeMixer,
-    'Chronos2': Chronos2,
-    'TimeKAN': TimeKAN,
+    'TimesNet': TimesNet,
+    'Mamba': Mamba,
+    # 自研 (3个)
+    'SparseTSF': SparseTSF,
     'KANiTransformer': KANiTransformer,
-    'MambaTransformerDual': MambaTransformerDual,
-    'MultimodalFusion': MultimodalFusion,
+    'LiteSparseNet': LiteSparseNet,
 }
