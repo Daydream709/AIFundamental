@@ -87,32 +87,35 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
     # 官方脚本: d_model=512 固定, e_layers 和 n_heads 随数据集变化
     # ========================================================================
     'PatchTST': {
-        # 低维数据集 (ETTm2: 7变量) — 较小配置
+        # 低维数据集 (ETTm2: 7变量)
+        # 来源: scripts/long_term_forecast/ETT_script/PatchTST_ETTm2.sh (pred_len=96)
         'low_dim': ModelPreset(
-            d_model=512, n_heads=8, e_layers=2, d_ff=2048,
+            d_model=512, n_heads=16, e_layers=3, d_ff=2048,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
             train_epochs=50, patience=10,
             extra={'patch_len': 16, 'stride': 8},
         ),
-        # 中维数据集 (Weather: 21变量) — 标准配置
+        # 中维数据集 (Weather: 21变量)
+        # 来源: scripts/long_term_forecast/Weather_script/PatchTST.sh (pred_len=96)
         'mid_dim': ModelPreset(
-            d_model=512, n_heads=16, e_layers=3, d_ff=2048,
+            d_model=512, n_heads=4, e_layers=2, d_ff=2048,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
-            train_epochs=30, patience=10,  # Weather 官方只训练3 epochs
+            train_epochs=3, patience=10,
             extra={'patch_len': 16, 'stride': 8},
         ),
-        # 高维数据集 (Electricity: 321变量) — 大配置
+        # 高维数据集 (Electricity: 321变量)
+        # 来源: scripts/long_term_forecast/ECL_script/PatchTST.sh
         'high_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=2, d_ff=2048,
             dropout=0.1, learning_rate=1e-4, batch_size=16,  # 显存限制
-            train_epochs=30, patience=10,
+            train_epochs=3, patience=10,
             extra={'patch_len': 16, 'stride': 8},
         ),
-        # 多模态 (Environment: 6变量+文本) — 中等配置
+        # 多模态 (Environment: 6变量+文本) — 参考低维配置
         'multimodal': ModelPreset(
             d_model=512, n_heads=8, e_layers=2, d_ff=2048,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
-            train_epochs=50, patience=10,
+            train_epochs=10, patience=10,
             extra={'patch_len': 16, 'stride': 8},
         ),
     },
@@ -132,10 +135,11 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
             extra={'top_k': 5, 'num_kernels': 6},
         ),
         # 中维 (Weather: 21变量)
+        # 来源: scripts/long_term_forecast/Weather_script/TimesNet.sh
         'mid_dim': ModelPreset(
-            d_model=64, n_heads=8, e_layers=2, d_ff=64,
+            d_model=32, n_heads=8, e_layers=2, d_ff=32,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
-            train_epochs=30, patience=10,
+            train_epochs=10, patience=10,
             extra={'top_k': 5, 'num_kernels': 6},
         ),
         # 高维 (Electricity: 321变量) — 官方 d_model=256

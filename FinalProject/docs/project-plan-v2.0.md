@@ -95,7 +95,7 @@
 | 组4 | 时序 + `report` + `search`（简单拼接） | 验证堆叠文本是否带来额外增益 |
 | 组5 | 时序 + 融合文本（门控融合） | 验证自适应门控融合是否优于简单拼接 |
 
-- **参与模型（选3个代表性架构）** ：PatchTST（Transformer 代表）、KAN-iTransformer（自研高性能代表）、Lite-SparseNet（自研轻量化代表）。
+- **参与模型（选2个代表性架构）** ：PatchTST（Transformer 代表）、SparseTSF（外部轻量化标杆）。
 - **核心分析问题**：
   1. 文本是否有效？→ 组1 vs 组2/3，量化 MSE/MAE 的降低幅度。
   2. 哪种文本更有用？→ 组2 vs 组3，分析 `report`（宏观）与 `search`（微观）的贡献差异（假设：`search` 实时舆情对短期预测更有帮助）。
