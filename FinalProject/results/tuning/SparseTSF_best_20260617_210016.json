@@ -1,0 +1,9 @@
+{
+  "seq_len": 96,
+  "pred_len": 96,
+  "learning_rate": 0.001,
+  "batch_size": 64,
+  "train_epochs": 30,
+  "patience": 5,
+  "period_len": 12
+}

@@ -1,0 +1,11 @@
+{
+  "seq_len": 96,
+  "pred_len": 96,
+  "learning_rate": 0.001,
+  "batch_size": 64,
+  "train_epochs": 50,
+  "patience": 10,
+  "fft_residual_k": 2,
+  "sparse_ratio": 2,
+  "group_size": 4
+}

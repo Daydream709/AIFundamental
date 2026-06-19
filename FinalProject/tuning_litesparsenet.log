@@ -1,0 +1,620 @@
+
+============================================================
+  Hyperparameter Tuning — FinalProject v2.0
+  Models: ['LiteSparseNet']
+  Dataset: ETTm2 (pred_len=96)
+  GPU: 0
+============================================================
+
+============================================================
+  Grid Search: LiteSparseNet
+  Dataset: ETTm2 | 组合数: 9
+  Fixed: {'seq_len': 96, 'pred_len': 96, 'learning_rate': 0.001, 'batch_size': 64, 'train_epochs': 50, 'patience': 10, 'fft_residual_k': 2}
+  Search: {'sparse_ratio': [2, 4, 8], 'group_size': [4, 8, 16]}
+============================================================
+
+[1/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=2, group_size=4
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 33,220
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.534728 | Val Loss: 0.331295
+  Validation loss decreased (inf -> 0.331295). Saving model...
+Epoch 2/50 | Train Loss: 0.291150 | Val Loss: 0.307463
+  Validation loss decreased (0.331295 -> 0.307463). Saving model...
+Epoch 3/50 | Train Loss: 0.278780 | Val Loss: 0.303578
+  Validation loss decreased (0.307463 -> 0.303578). Saving model...
+Epoch 4/50 | Train Loss: 0.274633 | Val Loss: 0.299947
+  Validation loss decreased (0.303578 -> 0.299947). Saving model...
+Epoch 5/50 | Train Loss: 0.272469 | Val Loss: 0.299128
+  Validation loss decreased (0.299947 -> 0.299128). Saving model...
+Epoch 6/50 | Train Loss: 0.271027 | Val Loss: 0.297860
+  Validation loss decreased (0.299128 -> 0.297860). Saving model...
+Epoch 7/50 | Train Loss: 0.270413 | Val Loss: 0.298344
+  EarlyStopping counter: 1 out of 10
+Epoch 8/50 | Train Loss: 0.269700 | Val Loss: 0.293176
+  Validation loss decreased (0.297860 -> 0.293176). Saving model...
+Epoch 9/50 | Train Loss: 0.269111 | Val Loss: 0.295021
+  EarlyStopping counter: 1 out of 10
+Epoch 10/50 | Train Loss: 0.268513 | Val Loss: 0.298262
+  EarlyStopping counter: 2 out of 10
+Epoch 11/50 | Train Loss: 0.268152 | Val Loss: 0.295920
+  EarlyStopping counter: 3 out of 10
+Epoch 12/50 | Train Loss: 0.267849 | Val Loss: 0.296112
+  EarlyStopping counter: 4 out of 10
+Epoch 13/50 | Train Loss: 0.267237 | Val Loss: 0.295029
+  EarlyStopping counter: 5 out of 10
+Epoch 14/50 | Train Loss: 0.267364 | Val Loss: 0.297644
+  EarlyStopping counter: 6 out of 10
+Epoch 15/50 | Train Loss: 0.266953 | Val Loss: 0.293067
+  Validation loss decreased (0.293176 -> 0.293067). Saving model...
+Epoch 16/50 | Train Loss: 0.266680 | Val Loss: 0.295284
+  EarlyStopping counter: 1 out of 10
+Epoch 17/50 | Train Loss: 0.266360 | Val Loss: 0.297245
+  EarlyStopping counter: 2 out of 10
+Epoch 18/50 | Train Loss: 0.266285 | Val Loss: 0.297918
+  EarlyStopping counter: 3 out of 10
+Epoch 19/50 | Train Loss: 0.266101 | Val Loss: 0.296056
+  EarlyStopping counter: 4 out of 10
+Epoch 20/50 | Train Loss: 0.265944 | Val Loss: 0.296328
+  EarlyStopping counter: 5 out of 10
+Epoch 21/50 | Train Loss: 0.265828 | Val Loss: 0.294800
+  EarlyStopping counter: 6 out of 10
+Epoch 22/50 | Train Loss: 0.265642 | Val Loss: 0.296061
+  EarlyStopping counter: 7 out of 10
+Epoch 23/50 | Train Loss: 0.265691 | Val Loss: 0.299896
+  EarlyStopping counter: 8 out of 10
+Epoch 24/50 | Train Loss: 0.265505 | Val Loss: 0.305199
+  EarlyStopping counter: 9 out of 10
+Epoch 25/50 | Train Loss: 0.265342 | Val Loss: 0.296427
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 25
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.218262, MAE=0.328461, RMSE=0.467186, MAPE=230.1958%, SMAPE=79.0680%
+    ★ New best! MSE=0.218262
+
+[2/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=2, group_size=8
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 33,480
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.531244 | Val Loss: 0.337226
+  Validation loss decreased (inf -> 0.337226). Saving model...
+Epoch 2/50 | Train Loss: 0.288150 | Val Loss: 0.308253
+  Validation loss decreased (0.337226 -> 0.308253). Saving model...
+Epoch 3/50 | Train Loss: 0.273815 | Val Loss: 0.301127
+  Validation loss decreased (0.308253 -> 0.301127). Saving model...
+Epoch 4/50 | Train Loss: 0.268114 | Val Loss: 0.302415
+  EarlyStopping counter: 1 out of 10
+Epoch 5/50 | Train Loss: 0.264629 | Val Loss: 0.298540
+  Validation loss decreased (0.301127 -> 0.298540). Saving model...
+Epoch 6/50 | Train Loss: 0.262661 | Val Loss: 0.301350
+  EarlyStopping counter: 1 out of 10
+Epoch 7/50 | Train Loss: 0.261195 | Val Loss: 0.299164
+  EarlyStopping counter: 2 out of 10
+Epoch 8/50 | Train Loss: 0.260086 | Val Loss: 0.311461
+  EarlyStopping counter: 3 out of 10
+Epoch 9/50 | Train Loss: 0.259080 | Val Loss: 0.302744
+  EarlyStopping counter: 4 out of 10
+Epoch 10/50 | Train Loss: 0.258442 | Val Loss: 0.307064
+  EarlyStopping counter: 5 out of 10
+Epoch 11/50 | Train Loss: 0.257894 | Val Loss: 0.302543
+  EarlyStopping counter: 6 out of 10
+Epoch 12/50 | Train Loss: 0.257429 | Val Loss: 0.305380
+  EarlyStopping counter: 7 out of 10
+Epoch 13/50 | Train Loss: 0.256912 | Val Loss: 0.306728
+  EarlyStopping counter: 8 out of 10
+Epoch 14/50 | Train Loss: 0.256508 | Val Loss: 0.308563
+  EarlyStopping counter: 9 out of 10
+Epoch 15/50 | Train Loss: 0.256199 | Val Loss: 0.305569
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 15
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.219501, MAE=0.329925, RMSE=0.468509, MAPE=233.3321%, SMAPE=79.1945%
+
+[3/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=2, group_size=16
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    group_size=4
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 33,220
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.534728 | Val Loss: 0.331295
+  Validation loss decreased (inf -> 0.331295). Saving model...
+Epoch 2/50 | Train Loss: 0.291150 | Val Loss: 0.307463
+  Validation loss decreased (0.331295 -> 0.307463). Saving model...
+Epoch 3/50 | Train Loss: 0.278780 | Val Loss: 0.303578
+  Validation loss decreased (0.307463 -> 0.303578). Saving model...
+Epoch 4/50 | Train Loss: 0.274633 | Val Loss: 0.299947
+  Validation loss decreased (0.303578 -> 0.299947). Saving model...
+Epoch 5/50 | Train Loss: 0.272469 | Val Loss: 0.299128
+  Validation loss decreased (0.299947 -> 0.299128). Saving model...
+Epoch 6/50 | Train Loss: 0.271027 | Val Loss: 0.297860
+  Validation loss decreased (0.299128 -> 0.297860). Saving model...
+Epoch 7/50 | Train Loss: 0.270413 | Val Loss: 0.298344
+  EarlyStopping counter: 1 out of 10
+Epoch 8/50 | Train Loss: 0.269700 | Val Loss: 0.293176
+  Validation loss decreased (0.297860 -> 0.293176). Saving model...
+Epoch 9/50 | Train Loss: 0.269111 | Val Loss: 0.295021
+  EarlyStopping counter: 1 out of 10
+Epoch 10/50 | Train Loss: 0.268513 | Val Loss: 0.298262
+  EarlyStopping counter: 2 out of 10
+Epoch 11/50 | Train Loss: 0.268152 | Val Loss: 0.295920
+  EarlyStopping counter: 3 out of 10
+Epoch 12/50 | Train Loss: 0.267849 | Val Loss: 0.296112
+  EarlyStopping counter: 4 out of 10
+Epoch 13/50 | Train Loss: 0.267237 | Val Loss: 0.295029
+  EarlyStopping counter: 5 out of 10
+Epoch 14/50 | Train Loss: 0.267364 | Val Loss: 0.297644
+  EarlyStopping counter: 6 out of 10
+Epoch 15/50 | Train Loss: 0.266953 | Val Loss: 0.293067
+  Validation loss decreased (0.293176 -> 0.293067). Saving model...
+Epoch 16/50 | Train Loss: 0.266680 | Val Loss: 0.295284
+  EarlyStopping counter: 1 out of 10
+Epoch 17/50 | Train Loss: 0.266360 | Val Loss: 0.297245
+  EarlyStopping counter: 2 out of 10
+Epoch 18/50 | Train Loss: 0.266285 | Val Loss: 0.297918
+  EarlyStopping counter: 3 out of 10
+Epoch 19/50 | Train Loss: 0.266101 | Val Loss: 0.296056
+  EarlyStopping counter: 4 out of 10
+Epoch 20/50 | Train Loss: 0.265944 | Val Loss: 0.296328
+  EarlyStopping counter: 5 out of 10
+Epoch 21/50 | Train Loss: 0.265828 | Val Loss: 0.294800
+  EarlyStopping counter: 6 out of 10
+Epoch 22/50 | Train Loss: 0.265642 | Val Loss: 0.296061
+  EarlyStopping counter: 7 out of 10
+Epoch 23/50 | Train Loss: 0.265691 | Val Loss: 0.299896
+  EarlyStopping counter: 8 out of 10
+Epoch 24/50 | Train Loss: 0.265505 | Val Loss: 0.305199
+  EarlyStopping counter: 9 out of 10
+Epoch 25/50 | Train Loss: 0.265342 | Val Loss: 0.296427
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 25
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.218262, MAE=0.328461, RMSE=0.467186, MAPE=230.1958%, SMAPE=79.0680%
+
+[4/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=4, group_size=4
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    sparse_ratio=4
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 17,092
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.688183 | Val Loss: 0.406651
+  Validation loss decreased (inf -> 0.406651). Saving model...
+Epoch 2/50 | Train Loss: 0.339521 | Val Loss: 0.347715
+  Validation loss decreased (0.406651 -> 0.347715). Saving model...
+Epoch 3/50 | Train Loss: 0.310312 | Val Loss: 0.332618
+  Validation loss decreased (0.347715 -> 0.332618). Saving model...
+Epoch 4/50 | Train Loss: 0.301126 | Val Loss: 0.328391
+  Validation loss decreased (0.332618 -> 0.328391). Saving model...
+Epoch 5/50 | Train Loss: 0.297239 | Val Loss: 0.328208
+  Validation loss decreased (0.328391 -> 0.328208). Saving model...
+Epoch 6/50 | Train Loss: 0.295316 | Val Loss: 0.326415
+  Validation loss decreased (0.328208 -> 0.326415). Saving model...
+Epoch 7/50 | Train Loss: 0.293935 | Val Loss: 0.322978
+  Validation loss decreased (0.326415 -> 0.322978). Saving model...
+Epoch 8/50 | Train Loss: 0.293269 | Val Loss: 0.325215
+  EarlyStopping counter: 1 out of 10
+Epoch 9/50 | Train Loss: 0.292522 | Val Loss: 0.330111
+  EarlyStopping counter: 2 out of 10
+Epoch 10/50 | Train Loss: 0.292320 | Val Loss: 0.335358
+  EarlyStopping counter: 3 out of 10
+Epoch 11/50 | Train Loss: 0.291887 | Val Loss: 0.328533
+  EarlyStopping counter: 4 out of 10
+Epoch 12/50 | Train Loss: 0.291685 | Val Loss: 0.323185
+  EarlyStopping counter: 5 out of 10
+Epoch 13/50 | Train Loss: 0.291250 | Val Loss: 0.327807
+  EarlyStopping counter: 6 out of 10
+Epoch 14/50 | Train Loss: 0.291012 | Val Loss: 0.325605
+  EarlyStopping counter: 7 out of 10
+Epoch 15/50 | Train Loss: 0.290889 | Val Loss: 0.325091
+  EarlyStopping counter: 8 out of 10
+Epoch 16/50 | Train Loss: 0.290824 | Val Loss: 0.322865
+  Validation loss decreased (0.322978 -> 0.322865). Saving model...
+Epoch 17/50 | Train Loss: 0.290531 | Val Loss: 0.323536
+  EarlyStopping counter: 1 out of 10
+Epoch 18/50 | Train Loss: 0.290545 | Val Loss: 0.327448
+  EarlyStopping counter: 2 out of 10
+Epoch 19/50 | Train Loss: 0.290293 | Val Loss: 0.324999
+  EarlyStopping counter: 3 out of 10
+Epoch 20/50 | Train Loss: 0.290169 | Val Loss: 0.323985
+  EarlyStopping counter: 4 out of 10
+Epoch 21/50 | Train Loss: 0.289903 | Val Loss: 0.330475
+  EarlyStopping counter: 5 out of 10
+Epoch 22/50 | Train Loss: 0.289840 | Val Loss: 0.325745
+  EarlyStopping counter: 6 out of 10
+Epoch 23/50 | Train Loss: 0.289698 | Val Loss: 0.326155
+  EarlyStopping counter: 7 out of 10
+Epoch 24/50 | Train Loss: 0.289565 | Val Loss: 0.324200
+  EarlyStopping counter: 8 out of 10
+Epoch 25/50 | Train Loss: 0.289496 | Val Loss: 0.324652
+  EarlyStopping counter: 9 out of 10
+Epoch 26/50 | Train Loss: 0.289341 | Val Loss: 0.325293
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 26
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.236691, MAE=0.343301, RMSE=0.486509, MAPE=243.6988%, SMAPE=80.5263%
+
+[5/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=4, group_size=8
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    sparse_ratio=4
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 17,352
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.682014 | Val Loss: 0.401804
+  Validation loss decreased (inf -> 0.401804). Saving model...
+Epoch 2/50 | Train Loss: 0.332866 | Val Loss: 0.346392
+  Validation loss decreased (0.401804 -> 0.346392). Saving model...
+Epoch 3/50 | Train Loss: 0.305998 | Val Loss: 0.332271
+  Validation loss decreased (0.346392 -> 0.332271). Saving model...
+Epoch 4/50 | Train Loss: 0.296134 | Val Loss: 0.332630
+  EarlyStopping counter: 1 out of 10
+Epoch 5/50 | Train Loss: 0.291724 | Val Loss: 0.325006
+  Validation loss decreased (0.332271 -> 0.325006). Saving model...
+Epoch 6/50 | Train Loss: 0.288989 | Val Loss: 0.326286
+  EarlyStopping counter: 1 out of 10
+Epoch 7/50 | Train Loss: 0.287388 | Val Loss: 0.326728
+  EarlyStopping counter: 2 out of 10
+Epoch 8/50 | Train Loss: 0.286170 | Val Loss: 0.326509
+  EarlyStopping counter: 3 out of 10
+Epoch 9/50 | Train Loss: 0.285481 | Val Loss: 0.328217
+  EarlyStopping counter: 4 out of 10
+Epoch 10/50 | Train Loss: 0.284776 | Val Loss: 0.327392
+  EarlyStopping counter: 5 out of 10
+Epoch 11/50 | Train Loss: 0.284087 | Val Loss: 0.328575
+  EarlyStopping counter: 6 out of 10
+Epoch 12/50 | Train Loss: 0.283593 | Val Loss: 0.328983
+  EarlyStopping counter: 7 out of 10
+Epoch 13/50 | Train Loss: 0.283231 | Val Loss: 0.329015
+  EarlyStopping counter: 8 out of 10
+Epoch 14/50 | Train Loss: 0.282594 | Val Loss: 0.328025
+  EarlyStopping counter: 9 out of 10
+Epoch 15/50 | Train Loss: 0.282284 | Val Loss: 0.327585
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 15
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.240714, MAE=0.348062, RMSE=0.490627, MAPE=247.8560%, SMAPE=80.9685%
+
+[6/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=4, group_size=16
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    sparse_ratio=4
+    group_size=4
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 17,092
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.688183 | Val Loss: 0.406651
+  Validation loss decreased (inf -> 0.406651). Saving model...
+Epoch 2/50 | Train Loss: 0.339521 | Val Loss: 0.347715
+  Validation loss decreased (0.406651 -> 0.347715). Saving model...
+Epoch 3/50 | Train Loss: 0.310312 | Val Loss: 0.332618
+  Validation loss decreased (0.347715 -> 0.332618). Saving model...
+Epoch 4/50 | Train Loss: 0.301126 | Val Loss: 0.328391
+  Validation loss decreased (0.332618 -> 0.328391). Saving model...
+Epoch 5/50 | Train Loss: 0.297239 | Val Loss: 0.328208
+  Validation loss decreased (0.328391 -> 0.328208). Saving model...
+Epoch 6/50 | Train Loss: 0.295316 | Val Loss: 0.326415
+  Validation loss decreased (0.328208 -> 0.326415). Saving model...
+Epoch 7/50 | Train Loss: 0.293935 | Val Loss: 0.322978
+  Validation loss decreased (0.326415 -> 0.322978). Saving model...
+Epoch 8/50 | Train Loss: 0.293269 | Val Loss: 0.325215
+  EarlyStopping counter: 1 out of 10
+Epoch 9/50 | Train Loss: 0.292522 | Val Loss: 0.330111
+  EarlyStopping counter: 2 out of 10
+Epoch 10/50 | Train Loss: 0.292320 | Val Loss: 0.335358
+  EarlyStopping counter: 3 out of 10
+Epoch 11/50 | Train Loss: 0.291887 | Val Loss: 0.328533
+  EarlyStopping counter: 4 out of 10
+Epoch 12/50 | Train Loss: 0.291685 | Val Loss: 0.323185
+  EarlyStopping counter: 5 out of 10
+Epoch 13/50 | Train Loss: 0.291250 | Val Loss: 0.327807
+  EarlyStopping counter: 6 out of 10
+Epoch 14/50 | Train Loss: 0.291012 | Val Loss: 0.325605
+  EarlyStopping counter: 7 out of 10
+Epoch 15/50 | Train Loss: 0.290889 | Val Loss: 0.325091
+  EarlyStopping counter: 8 out of 10
+Epoch 16/50 | Train Loss: 0.290824 | Val Loss: 0.322865
+  Validation loss decreased (0.322978 -> 0.322865). Saving model...
+Epoch 17/50 | Train Loss: 0.290531 | Val Loss: 0.323536
+  EarlyStopping counter: 1 out of 10
+Epoch 18/50 | Train Loss: 0.290545 | Val Loss: 0.327448
+  EarlyStopping counter: 2 out of 10
+Epoch 19/50 | Train Loss: 0.290293 | Val Loss: 0.324999
+  EarlyStopping counter: 3 out of 10
+Epoch 20/50 | Train Loss: 0.290169 | Val Loss: 0.323985
+  EarlyStopping counter: 4 out of 10
+Epoch 21/50 | Train Loss: 0.289903 | Val Loss: 0.330475
+  EarlyStopping counter: 5 out of 10
+Epoch 22/50 | Train Loss: 0.289840 | Val Loss: 0.325745
+  EarlyStopping counter: 6 out of 10
+Epoch 23/50 | Train Loss: 0.289698 | Val Loss: 0.326155
+  EarlyStopping counter: 7 out of 10
+Epoch 24/50 | Train Loss: 0.289565 | Val Loss: 0.324200
+  EarlyStopping counter: 8 out of 10
+Epoch 25/50 | Train Loss: 0.289496 | Val Loss: 0.324652
+  EarlyStopping counter: 9 out of 10
+Epoch 26/50 | Train Loss: 0.289341 | Val Loss: 0.325293
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 26
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.236691, MAE=0.343301, RMSE=0.486509, MAPE=243.6988%, SMAPE=80.5263%
+
+[7/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=8, group_size=4
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 9,028
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.942124 | Val Loss: 0.568961
+  Validation loss decreased (inf -> 0.568961). Saving model...
+Epoch 2/50 | Train Loss: 0.445334 | Val Loss: 0.447693
+  Validation loss decreased (0.568961 -> 0.447693). Saving model...
+Epoch 3/50 | Train Loss: 0.392802 | Val Loss: 0.417140
+  Validation loss decreased (0.447693 -> 0.417140). Saving model...
+Epoch 4/50 | Train Loss: 0.376121 | Val Loss: 0.417497
+  EarlyStopping counter: 1 out of 10
+Epoch 5/50 | Train Loss: 0.369808 | Val Loss: 0.406415
+  Validation loss decreased (0.417140 -> 0.406415). Saving model...
+Epoch 6/50 | Train Loss: 0.366962 | Val Loss: 0.405171
+  Validation loss decreased (0.406415 -> 0.405171). Saving model...
+Epoch 7/50 | Train Loss: 0.365534 | Val Loss: 0.404058
+  Validation loss decreased (0.405171 -> 0.404058). Saving model...
+Epoch 8/50 | Train Loss: 0.364754 | Val Loss: 0.410192
+  EarlyStopping counter: 1 out of 10
+Epoch 9/50 | Train Loss: 0.364189 | Val Loss: 0.407032
+  EarlyStopping counter: 2 out of 10
+Epoch 10/50 | Train Loss: 0.363579 | Val Loss: 0.405069
+  EarlyStopping counter: 3 out of 10
+Epoch 11/50 | Train Loss: 0.363131 | Val Loss: 0.404836
+  EarlyStopping counter: 4 out of 10
+Epoch 12/50 | Train Loss: 0.362972 | Val Loss: 0.404154
+  EarlyStopping counter: 5 out of 10
+Epoch 13/50 | Train Loss: 0.362535 | Val Loss: 0.405996
+  EarlyStopping counter: 6 out of 10
+Epoch 14/50 | Train Loss: 0.362386 | Val Loss: 0.407473
+  EarlyStopping counter: 7 out of 10
+Epoch 15/50 | Train Loss: 0.362094 | Val Loss: 0.405895
+  EarlyStopping counter: 8 out of 10
+Epoch 16/50 | Train Loss: 0.361538 | Val Loss: 0.406517
+  EarlyStopping counter: 9 out of 10
+Epoch 17/50 | Train Loss: 0.361420 | Val Loss: 0.408595
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 17
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.299811, MAE=0.388519, RMSE=0.547550, MAPE=278.2785%, SMAPE=85.6661%
+
+[8/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=8, group_size=8
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 9,288
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.912426 | Val Loss: 0.577369
+  Validation loss decreased (inf -> 0.577369). Saving model...
+Epoch 2/50 | Train Loss: 0.434818 | Val Loss: 0.451634
+  Validation loss decreased (0.577369 -> 0.451634). Saving model...
+Epoch 3/50 | Train Loss: 0.388892 | Val Loss: 0.425671
+  Validation loss decreased (0.451634 -> 0.425671). Saving model...
+Epoch 4/50 | Train Loss: 0.371724 | Val Loss: 0.416101
+  Validation loss decreased (0.425671 -> 0.416101). Saving model...
+Epoch 5/50 | Train Loss: 0.363080 | Val Loss: 0.416542
+  EarlyStopping counter: 1 out of 10
+Epoch 6/50 | Train Loss: 0.358677 | Val Loss: 0.411578
+  Validation loss decreased (0.416101 -> 0.411578). Saving model...
+Epoch 7/50 | Train Loss: 0.356214 | Val Loss: 0.411486
+  Validation loss decreased (0.411578 -> 0.411486). Saving model...
+Epoch 8/50 | Train Loss: 0.354647 | Val Loss: 0.409438
+  Validation loss decreased (0.411486 -> 0.409438). Saving model...
+Epoch 9/50 | Train Loss: 0.353412 | Val Loss: 0.411368
+  EarlyStopping counter: 1 out of 10
+Epoch 10/50 | Train Loss: 0.352343 | Val Loss: 0.411143
+  EarlyStopping counter: 2 out of 10
+Epoch 11/50 | Train Loss: 0.351656 | Val Loss: 0.409925
+  EarlyStopping counter: 3 out of 10
+Epoch 12/50 | Train Loss: 0.350947 | Val Loss: 0.410063
+  EarlyStopping counter: 4 out of 10
+Epoch 13/50 | Train Loss: 0.350253 | Val Loss: 0.409795
+  EarlyStopping counter: 5 out of 10
+Epoch 14/50 | Train Loss: 0.349515 | Val Loss: 0.408639
+  Validation loss decreased (0.409438 -> 0.408639). Saving model...
+Epoch 15/50 | Train Loss: 0.349155 | Val Loss: 0.409287
+  EarlyStopping counter: 1 out of 10
+Epoch 16/50 | Train Loss: 0.348625 | Val Loss: 0.411068
+  EarlyStopping counter: 2 out of 10
+Epoch 17/50 | Train Loss: 0.348071 | Val Loss: 0.410566
+  EarlyStopping counter: 3 out of 10
+Epoch 18/50 | Train Loss: 0.347793 | Val Loss: 0.409651
+  EarlyStopping counter: 4 out of 10
+Epoch 19/50 | Train Loss: 0.347359 | Val Loss: 0.411926
+  EarlyStopping counter: 5 out of 10
+Epoch 20/50 | Train Loss: 0.346916 | Val Loss: 0.408993
+  EarlyStopping counter: 6 out of 10
+Epoch 21/50 | Train Loss: 0.346457 | Val Loss: 0.411259
+  EarlyStopping counter: 7 out of 10
+Epoch 22/50 | Train Loss: 0.346181 | Val Loss: 0.413797
+  EarlyStopping counter: 8 out of 10
+Epoch 23/50 | Train Loss: 0.346037 | Val Loss: 0.411191
+  EarlyStopping counter: 9 out of 10
+Epoch 24/50 | Train Loss: 0.345785 | Val Loss: 0.409994
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 24
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.292133, MAE=0.384631, RMSE=0.540493, MAPE=281.3760%, SMAPE=83.9803%
+
+[9/9]
+  >> LiteSparseNet | seq_len=96, pred_len=96, learning_rate=0.001, batch_size=64, train_epochs=50, patience=10, fft_residual_k=2, sparse_ratio=8, group_size=16
+  [Preset] LiteSparseNet on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=1
+    d_ff=2048
+    dropout=0.05
+    batch_size=64
+    patience=10
+    group_size=4
+    fft_residual_k=2
+  Model: LiteSparseNet, Params: 9,028
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.942124 | Val Loss: 0.568961
+  Validation loss decreased (inf -> 0.568961). Saving model...
+Epoch 2/50 | Train Loss: 0.445334 | Val Loss: 0.447693
+  Validation loss decreased (0.568961 -> 0.447693). Saving model...
+Epoch 3/50 | Train Loss: 0.392802 | Val Loss: 0.417140
+  Validation loss decreased (0.447693 -> 0.417140). Saving model...
+Epoch 4/50 | Train Loss: 0.376121 | Val Loss: 0.417497
+  EarlyStopping counter: 1 out of 10
+Epoch 5/50 | Train Loss: 0.369808 | Val Loss: 0.406415
+  Validation loss decreased (0.417140 -> 0.406415). Saving model...
+Epoch 6/50 | Train Loss: 0.366962 | Val Loss: 0.405171
+  Validation loss decreased (0.406415 -> 0.405171). Saving model...
+Epoch 7/50 | Train Loss: 0.365534 | Val Loss: 0.404058
+  Validation loss decreased (0.405171 -> 0.404058). Saving model...
+Epoch 8/50 | Train Loss: 0.364754 | Val Loss: 0.410192
+  EarlyStopping counter: 1 out of 10
+Epoch 9/50 | Train Loss: 0.364189 | Val Loss: 0.407032
+  EarlyStopping counter: 2 out of 10
+Epoch 10/50 | Train Loss: 0.363579 | Val Loss: 0.405069
+  EarlyStopping counter: 3 out of 10
+Epoch 11/50 | Train Loss: 0.363131 | Val Loss: 0.404836
+  EarlyStopping counter: 4 out of 10
+Epoch 12/50 | Train Loss: 0.362972 | Val Loss: 0.404154
+  EarlyStopping counter: 5 out of 10
+Epoch 13/50 | Train Loss: 0.362535 | Val Loss: 0.405996
+  EarlyStopping counter: 6 out of 10
+Epoch 14/50 | Train Loss: 0.362386 | Val Loss: 0.407473
+  EarlyStopping counter: 7 out of 10
+Epoch 15/50 | Train Loss: 0.362094 | Val Loss: 0.405895
+  EarlyStopping counter: 8 out of 10
+Epoch 16/50 | Train Loss: 0.361538 | Val Loss: 0.406517
+  EarlyStopping counter: 9 out of 10
+Epoch 17/50 | Train Loss: 0.361420 | Val Loss: 0.408595
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 17
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (LiteSparseNet on ETTm2, H=96, F=96):
+    MSE=0.299811, MAE=0.388519, RMSE=0.547550, MAPE=278.2785%, SMAPE=85.6661%
+
+============================================================
+  Grid Search 结果: LiteSparseNet
+============================================================
+  ★ #1: sparse_ratio=2, group_size=4  → MSE=0.218262, MAE=0.328461 [1320s]
+    #2: sparse_ratio=2, group_size=16  → MSE=0.218262, MAE=0.328461 [1322s]
+    #3: sparse_ratio=2, group_size=8  → MSE=0.219501, MAE=0.329925 [799s]
+    #4: sparse_ratio=4, group_size=4  → MSE=0.236691, MAE=0.343301 [1373s]
+    #5: sparse_ratio=4, group_size=16  → MSE=0.236691, MAE=0.343301 [1443s]
+    #6: sparse_ratio=4, group_size=8  → MSE=0.240714, MAE=0.348062 [795s]
+    #7: sparse_ratio=8, group_size=8  → MSE=0.292133, MAE=0.384631 [1326s]
+    #8: sparse_ratio=8, group_size=4  → MSE=0.299811, MAE=0.388519 [1411s]
+    #9: sparse_ratio=8, group_size=16  → MSE=0.299811, MAE=0.388519 [931s]
+
+  Best config: {'seq_len': 96, 'pred_len': 96, 'learning_rate': 0.001, 'batch_size': 64, 'train_epochs': 50, 'patience': 10, 'fft_residual_k': 2, 'sparse_ratio': 2, 'group_size': 4}
+  Results saved: results/tuning/LiteSparseNet_20260618_001244.json
+  Best config saved: results/tuning/LiteSparseNet_best_20260618_001244.json
+  [Hint] LiteSparseNet tuned params: ['group_size', 'sparse_ratio']
+         Values: [('group_size', 4), ('sparse_ratio', 2)]
+         请手动将上述值更新到 configs/model_configs.py 中
+         LiteSparseNet 块的 4 个 tier (low_dim / mid_dim / high_dim / multimodal)
+
+============================================================
+  调优完成 — 最优配置汇总
+============================================================
+
+  LiteSparseNet:
+    seq_len: 96
+    pred_len: 96
+    learning_rate: 0.001
+    batch_size: 64
+    train_epochs: 50
+    patience: 10
+    fft_residual_k: 2
+    sparse_ratio: 2
+    group_size: 4
+
+  请将以上最优配置更新到 configs/model_configs.py
+  (已自动更新)
