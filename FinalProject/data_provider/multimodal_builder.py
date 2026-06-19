@@ -1,15 +1,16 @@
 """
-多模态数据构建 — v2.0 支持文本模态 (report + search)
+多模态数据构建 — v2.1 支持 文本 + 卫星图像
+==========================================
 
-Environment 数据集的文本来源:
-  - report: 环境报告 (宏观政策/年度总结, ~156条)
-  - search: 相关搜索摘要 (公众关注度, ~2,272条)
+Environment 数据集的模态来源:
+  - report: 环境报告 (宏观政策/年度总结, ~156条)  — 文本
+  - search: 相关搜索摘要 (公众关注度, ~2,272条)   — 文本
+  - satellite: Sentinel-5P NO2 卫星图 (32×32 灰度, ~1500张)  — 图像 (v2.1 新增)
 
-文本融合模式:
-  - concat: 简单拼接 report 和 search 嵌入
-  - gating: 自适应门控融合
-  - report_only: 仅使用 report 文本
-  - search_only: 仅使用 search 文本
+融合模式:
+  - concat: 简单拼接文本嵌入 (旧)
+  - gating: 自适应门控融合 (旧)
+  - satellite: 加载卫星图像 (新)
 """
 import os
 import json
@@ -17,20 +18,21 @@ import numpy as np
 
 
 def load_or_build_multimodal(dataset_name, data_dir, text_dim=768, img_size=32,
-                             text_mode='concat'):
+                             text_mode='concat', use_satellite=True):
     """
-    加载或构建多模态数据
+    加载或构建多模态数据 (v2.1: 文本 + 卫星图像)
 
     Args:
         dataset_name: 数据集名称 (Environment / Energy / Health)
         data_dir: 数据目录 (./dataset/)
         text_dim: 文本嵌入维度
-        img_size: 递归图尺寸 (未在v2.0中使用)
-        text_mode: 文本融合模式
+        img_size: 图像尺寸 (默认 32)
+        text_mode: 文本融合模式 (concat / gating / report_only / search_only)
+        use_satellite: 是否加载卫星图像 (v2.1 新增)
 
     Returns:
         text_embeds: [N, text_dim] numpy array 或 None
-        img_tensors: [N, 1, img_size, img_size] 或 None
+        img_tensors: [N, 1, img_size, img_size] 或 None  (卫星图像)
     """
     text_embeds = None
     img_tensors = None
@@ -55,7 +57,65 @@ def load_or_build_multimodal(dataset_name, data_dir, text_dim=768, img_size=32,
     else:
         img_tensors = _build_recurrence_plots(dataset_name, data_dir, img_size)
 
+    # ★ v2.1 新增: 加载卫星图像 (覆盖 img_tensors)
+    if use_satellite:
+        sat_imgs = _load_satellite_images(dataset_name, data_dir, img_size)
+        if sat_imgs is not None:
+            img_tensors = sat_imgs
+            print(f'  Using satellite images: {sat_imgs.shape}')
+
     return text_embeds, img_tensors
+
+
+def _load_satellite_images(dataset_name, data_dir, img_size=32):
+    """
+    加载 dataset/{dataset_name}/satellite_imgs/ 下的卫星 PNG
+
+    期望目录结构:
+      dataset/satellite_imgs/{date}.png
+      dataset/Environment.csv (含 date 列, 用于对齐)
+
+    Returns:
+        [N, 1, img_size, img_size] numpy array 或 None (失败)
+    """
+    from PIL import Image
+    import pandas as pd
+
+    img_dir = os.path.join(data_dir, 'satellite_imgs')
+    if not os.path.isdir(img_dir):
+        return None
+
+    # 用 CSV 对齐
+    csv_path = os.path.join(data_dir, f'{dataset_name}.csv')
+    if not os.path.exists(csv_path):
+        return None
+
+    df = pd.read_csv(csv_path)
+    if 'date' not in df.columns:
+        return None
+
+    dates = df['date'].astype(str).values
+    n = len(dates)
+    imgs = np.zeros((n, 1, img_size, img_size), dtype=np.float32)
+
+    n_loaded = 0
+    n_missing = 0
+    for i, date in enumerate(dates):
+        img_path = os.path.join(img_dir, f'{date}.png')
+        if os.path.exists(img_path):
+            pil = Image.open(img_path).convert('L')
+            if pil.size != (img_size, img_size):
+                pil = pil.resize((img_size, img_size), Image.BILINEAR)
+            arr = np.array(pil, dtype=np.float32) / 255.0  # 归一化到 [0, 1]
+            imgs[i, 0] = arr
+            n_loaded += 1
+        else:
+            n_missing += 1
+
+    print(f'  Satellite images: loaded {n_loaded}/{n}, missing {n_missing}')
+    if n_loaded == 0:
+        return None
+    return imgs
 
 
 def _build_from_timemmd_json(dataset_name, data_dir, text_dim):

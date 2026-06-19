@@ -2,3 +2,71 @@ venv/
 **/__pycache__/
 *.pyc
 /**/checkpoints/
+**/satellite_imgs/
+dataset/satellite_raw/   # 真实卫星数据 (临时, 重新跑 download 即可)
+
+# ==================== Node.js / npm ====================
+node_modules/
+viz-frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnpm-store/
+
+# TypeScript / Next.js / Vite
+.next/
+out/
+build/
+dist/
+viz-frontend/dist/
+.vite/
+.turbo/
+.turbo-cache/
+*.tsbuildinfo
+
+# ==================== Python 生态 ====================
+*.egg-info/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+__pypackages__/
+
+# ==================== IDE / 编辑器 ====================
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ==================== Jupyter / 数据 ====================
+.ipynb_checkpoints/
+*.ipynb
+*.h5
+*.hdf5
+*.parquet
+*.pkl
+*.h5py-cache/
+
+# ==================== 日志 / 临时 ====================
+*.log
+*.tmp
+*.swp
+*.bak
+.cache/
+.tmp/
+
+# ==================== OS ====================
+.DS_Store
+Thumbs.db
+desktop.ini

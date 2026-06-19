@@ -98,6 +98,7 @@ class BaseConfig:
     # ==================== 多模态 ====================
     use_text: bool = False
     use_image: bool = False
+    use_satellite: bool = False       # ★ v2.1 新增: 卫星图像模态
     text_dim: int = 768
     img_size: int = 32
     use_contrastive: bool = False

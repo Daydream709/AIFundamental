@@ -36,12 +36,14 @@ def data_provider(config, flag):
     )
 
     # 设置多模态数据（如果需要）
-    if config.use_text or config.use_image:
+    if config.use_text or config.use_image or config.use_satellite:
         text_mode = getattr(config, 'text_fusion_mode', 'concat')
-        _attach_multimodal(dataset, config, text_mode=text_mode)
+        use_sat = getattr(config, 'use_satellite', False)
+        _attach_multimodal(dataset, config, text_mode=text_mode, use_satellite=use_sat)
 
     print(f'  [{flag}] Dataset: {config.data}, samples={len(dataset)}, '
-          f'shape={dataset.data.shape}, text={dataset.text_embeds_slice is not None}')
+          f'shape={dataset.data.shape}, text={dataset.text_embeds_slice is not None}, '
+          f'sat={dataset.img_tensors_slice is not None}')
 
     data_loader = DataLoader(
         dataset,
@@ -55,13 +57,13 @@ def data_provider(config, flag):
     return data_loader
 
 
-def _attach_multimodal(dataset, config, text_mode='concat'):
-    """为数据集附加多模态数据"""
+def _attach_multimodal(dataset, config, text_mode='concat', use_satellite=False):
+    """为数据集附加多模态数据 (文本 + 卫星图像)"""
     try:
         from data_provider.multimodal_builder import load_or_build_multimodal
         text_embeds, img_tensors = load_or_build_multimodal(
             config.data, config.root_path, config.text_dim, config.img_size,
-            text_mode=text_mode,
+            text_mode=text_mode, use_satellite=use_satellite,
         )
         if text_embeds is not None:
             dataset.text_embeds_slice = text_embeds

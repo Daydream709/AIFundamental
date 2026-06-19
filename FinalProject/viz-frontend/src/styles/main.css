@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/* ===================================================================
+   Neumorphism Design Tokens (ui-ux-pro-max style #2)
+   Reference: styles.csv row 3 (Neumorphism, General)
+   Single monochromatic base + dual shadows (light from top-left)
+   =================================================================== */
+
+@theme {
+  /* Single base color (all surfaces share this) */
+  --color-neu-bg: #e0e5ec;
+  --color-neu-surface: #d8dde4;
+  --color-neu-surface-deep: #ccd1d9;
+
+  /* Text colors with verified contrast */
+  --color-neu-text: #3d4852; /* 7.5:1 on #e0e5ec */
+  --color-neu-text-muted: #6b7280; /* 4.6:1 */
+  --color-neu-text-light: #94a3b8;
+
+  /* Accent (only for focus rings and active state indicators) */
+  --color-neu-accent: #6c63ff;
+  --color-neu-accent-soft: rgba(108, 99, 255, 0.3);
+
+  /* Dual shadow base colors */
+  --color-neu-shadow-dark: #b8bcc8;
+  --color-neu-shadow-light: #ffffff;
+
+  /* Radii (consistent 14px per neumorphism spec) */
+  --radius-neu: 14px;
+  --radius-neu-sm: 10px;
+  --radius-neu-lg: 22px;
+
+  /* Typography */
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+/* ===================================================================
+   Neumorphism utility classes
+   =================================================================== */
+
+@layer utilities {
+  /* Outset (raised) - default state for cards, buttons */
+  .shadow-neu {
+    box-shadow:
+      8px 8px 16px var(--color-neu-shadow-dark),
+      -8px -8px 16px var(--color-neu-shadow-light);
+  }
+  .shadow-neu-sm {
+    box-shadow:
+      4px 4px 8px var(--color-neu-shadow-dark),
+      -4px -4px 8px var(--color-neu-shadow-light);
+  }
+  .shadow-neu-lg {
+    box-shadow:
+      12px 12px 24px var(--color-neu-shadow-dark),
+      -12px -12px 24px var(--color-neu-shadow-light);
+  }
+
+  /* Inset (pressed / input) - active state, inputs, focus */
+  .shadow-neu-in {
+    box-shadow:
+      inset 6px 6px 12px var(--color-neu-shadow-dark),
+      inset -6px -6px 12px var(--color-neu-shadow-light);
+  }
+  .shadow-neu-in-sm {
+    box-shadow:
+      inset 3px 3px 6px var(--color-neu-shadow-dark),
+      inset -3px -3px 6px var(--color-neu-shadow-light);
+  }
+
+  /* Press effect: transition + scale on click */
+  .press-neu {
+    transition:
+      box-shadow 200ms ease-out,
+      transform 200ms ease-out;
+  }
+  .press-neu:active {
+    box-shadow:
+      inset 4px 4px 8px var(--color-neu-shadow-dark),
+      inset -4px -4px 8px var(--color-neu-shadow-light);
+    transform: scale(0.97);
+  }
+
+  /* Hover lift (subtle) */
+  .hover-lift {
+    transition: transform 250ms ease-out, box-shadow 250ms ease-out;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* ===================================================================
+   Global resets and base styles
+   =================================================================== */
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-neu-bg);
+  color: var(--color-neu-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* Naive UI global message/dialog/notif z-index lift */
+.n-message-container,
+.n-notification-container,
+.n-dialog-container {
+  z-index: 9999 !important;
+}
+
+/* Reduced motion: disable all transitions/transforms */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .press-neu:active,
+  .hover-lift:hover {
+    transform: none !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-neu-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neu-shadow-dark);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neu-text-muted);
+}

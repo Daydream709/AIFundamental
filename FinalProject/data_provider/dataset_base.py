@@ -140,9 +140,15 @@ class BaseDataset(Dataset):
         else:
             result = result + (torch.zeros(1),)  # placeholder
 
+        # ★ v2.1: 卫星图像 (32×32 灰度图)
         if self.img_tensors_slice is not None:
-            result = result + (torch.FloatTensor(self.img_tensors_slice[s_begin]),)
+            # img_tensors_slice: [N, 1, H, W]
+            # 在窗口内对 H×W 图像平均 (与 text 一样)
+            sat_imgs = self.img_tensors_slice[s_begin:s_end]  # [seq_len, 1, H, W]
+            # 取窗口内平均 → [1, H, W] (保留空间信息)
+            sat_avg = sat_imgs.mean(axis=0)
+            result = result + (torch.FloatTensor(sat_avg),)
         else:
-            result = result + (torch.zeros(1),)  # placeholder
+            result = result + (torch.zeros(1, 32, 32),)  # placeholder (32×32 灰度)
 
         return result
