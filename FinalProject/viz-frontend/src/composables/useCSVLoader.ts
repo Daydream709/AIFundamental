@@ -1,17 +1,18 @@
 /**
  * CSV loader: fetch + PapaParse with column normalization.
  *
- * Data flow:
- *   public/data/*.csv (synced by scripts/sync_results.py)
- *     -> fetch
- *     -> PapaParse with header:true, dynamicTyping:true
- *     -> normalizeColumns() (handles legacy lowercase aliases)
- *     -> mergeEfficiency() for main results
+ * Data flow is strictly per-line. Each line run produces:
+ *   /data/line{N}_latest.csv        (always current; viz reads this)
+ *   /data/line{N}_{ts}.csv          (timestamped history)
+ *   /data/efficiency/line{N}_latest.csv
+ *
+ * There is NO shared main_results.csv. If a viz page needs data from
+ * another line, it loads that line's _latest.csv directly.
  */
 import Papa from "papaparse";
 import type { ResultRow, EfficiencyRow, AblationRow } from "@/types/results";
 
-/** Legacy alias columns that might still appear if sync_results.py was bypassed */
+/** Legacy alias columns that might still appear in old CSV files */
 const COLUMN_ALIASES: Record<string, string[]> = {
   "Params(M)": ["Params(M)", "params_M", "params_m", "params(M)"],
   "FLOPs(G)": ["FLOPs(G)", "flops_G", "flops_g", "FLOPs(g)"],
@@ -56,8 +57,10 @@ function parseCSV<T extends Record<string, any>>(text: string): T[] {
   return result.data.filter((row) => row && Object.keys(row).length > 0);
 }
 
-/** Load and parse a single CSV file with column normalization */
-export async function loadCSV<T extends Record<string, any>>(path: string): Promise<T[]> {
+/** Load and parse a CSV file with column normalization. */
+export async function loadCSV<T extends Record<string, any>>(
+  path: string
+): Promise<T[]> {
   try {
     const text = await fetchText(path);
     const rows = parseCSV<T>(text);
@@ -68,37 +71,35 @@ export async function loadCSV<T extends Record<string, any>>(path: string): Prom
   }
 }
 
-/** Load main_results.csv */
-export async function loadMainResults(): Promise<ResultRow[]> {
-  return loadCSV<ResultRow>("/data/main_results.csv");
+// ============================================================================
+// Per-line loaders (Line 1, 2, 3 use these; Line 4 uses ablation loaders)
+// ============================================================================
+
+/** Load Line N's latest main results (N ∈ {1, 2, 3}) */
+export async function loadLineData(line: number): Promise<ResultRow[]> {
+  return loadCSV<ResultRow>(`/data/line${line}_latest.csv`);
 }
 
-/** Load efficiency_summary.csv */
-export async function loadEfficiency(): Promise<EfficiencyRow[]> {
-  return loadCSV<EfficiencyRow>("/data/efficiency_summary.csv");
+/** Load Line N's latest efficiency data (N ∈ {1, 2, 3}) */
+export async function loadLineEfficiency(
+  line: number
+): Promise<EfficiencyRow[]> {
+  return loadCSV<EfficiencyRow>(`/data/efficiency/line${line}_latest.csv`);
 }
 
-/** Load KAN ablation (results/ablation_kan.csv) */
+/** Load KAN ablation latest data */
 export async function loadAblationKan(): Promise<AblationRow[]> {
-  return loadCSV<AblationRow>("/data/ablation_kan.csv");
+  return loadCSV<AblationRow>("/data/ablation_kan_latest.csv");
 }
 
-/** Load Lite ablation (results/ablation_lite.csv) */
+/** Load Lite ablation latest data */
 export async function loadAblationLite(): Promise<AblationRow[]> {
-  return loadCSV<AblationRow>("/data/ablation_lite.csv");
+  return loadCSV<AblationRow>("/data/ablation_lite_latest.csv");
 }
 
-/** Load combined ablation data (KAN + Lite + legacy synthetic). */
-export async function loadAblation(): Promise<AblationRow[]> {
-  const [kan, lite, legacy] = await Promise.all([
-    loadAblationKan(),
-    loadAblationLite(),
-    loadCSV<AblationRow>("/data/ablation_results.csv").catch(() => []),
-  ]);
-  return [...kan, ...lite, ...legacy];
-}
-
-/** Merge main results with efficiency data on (model, dataset) */
+// ============================================================================
+// Per-line merge: combine main results with efficiency on (model, dataset)
+// ============================================================================
 export function mergeEfficiency(
   main: ResultRow[],
   eff: EfficiencyRow[]
@@ -113,30 +114,43 @@ export function mergeEfficiency(
     if (!e) return row;
     return {
       ...row,
-      "Params(M)": row["Params(M)"] && row["Params(M)"]! > 0 ? row["Params(M)"] : e["Params(M)"],
-      "FLOPs(G)": row["FLOPs(G)"] && row["FLOPs(G)"]! > 0 ? row["FLOPs(G)"] : e["FLOPs(G)"],
+      "Params(M)":
+        row["Params(M)"] && row["Params(M)"]! > 0
+          ? row["Params(M)"]
+          : e["Params(M)"],
+      "FLOPs(G)":
+        row["FLOPs(G)"] && row["FLOPs(G)"]! > 0
+          ? row["FLOPs(G)"]
+          : e["FLOPs(G)"],
     };
   });
 }
 
-/** Get file availability status for the overview page */
-export async function loadFileStatus(): Promise<Record<string, "ok" | "missing" | "empty">> {
-  const out: Record<string, "ok" | "missing" | "empty"> = {};
-  const files = [
-    ["main", "/data/main_results.csv"],
-    ["efficiency", "/data/efficiency_summary.csv"],
-    ["ablation_kan", "/data/ablation_kan.csv"],
-    ["ablation_lite", "/data/ablation_lite.csv"],
-  ] as const;
+// ============================================================================
+// File status (for Overview page)
+// ============================================================================
+export type FileStatus = Record<string, "ok" | "missing" | "empty">;
 
-  for (const [label, path] of files) {
+const TRACKED_FILES: Array<[string, string]> = [
+  ["line1", "/data/line1_latest.csv"],
+  ["line2", "/data/line2_latest.csv"],
+  ["line3", "/data/line3_latest.csv"],
+  ["efficiency/line1", "/data/efficiency/line1_latest.csv"],
+  ["efficiency/line2", "/data/efficiency/line2_latest.csv"],
+  ["efficiency/line3", "/data/efficiency/line3_latest.csv"],
+  ["ablation_kan", "/data/ablation_kan_latest.csv"],
+  ["ablation_lite", "/data/ablation_lite_latest.csv"],
+];
+
+export async function loadFileStatus(): Promise<FileStatus> {
+  const out: FileStatus = {};
+  for (const [label, path] of TRACKED_FILES) {
     try {
       const res = await fetch(path, { method: "HEAD" });
       if (!res.ok) {
         out[label] = "missing";
         continue;
       }
-      // Fetch the body to check for actual data
       const text = await fetchText(path);
       const lines = text.split("\n").filter((l) => l.trim().length > 0);
       out[label] = lines.length > 1 ? "ok" : "empty";

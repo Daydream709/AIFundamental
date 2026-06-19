@@ -39,6 +39,7 @@ from _common import (
     save_line_results,
     save_efficiency,
     efficiency_rows_from,
+    append_to_partial,
     print_summary,
 )
 
@@ -84,14 +85,18 @@ def main():
                 print(f"\n[{current}/{total}]")
                 extra = {"label": text_label, **text_config}
                 r = run_experiment(model, "Environment", SEQ_LEN, pred_len,
-                                   extra_config=extra, epochs=args.epochs, gpu=args.gpu)
+                                   extra_config=extra, epochs=args.epochs, gpu=args.gpu,
+                                   on_complete=lambda res: append_to_partial(
+                                       {**res, "line": 3, "text_mode": text_label},
+                                       line=3,
+                                   ))
                 r["line"] = 3
                 r["text_mode"] = text_label
                 results.append(r)
 
     df = pd.DataFrame(results)
     save_line_results(df, line_number=3)
-    save_efficiency(efficiency_rows_from(df))
+    save_efficiency(efficiency_rows_from(df), line=3)
     print_summary(results, "Line 3")
 
 

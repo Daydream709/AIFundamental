@@ -1,8 +1,12 @@
 """Sync CSV results into the Vue frontend's public/data directory.
 
-Run after any `run_experiments.py` or `run_ablation.py` to refresh the
-visualization data. Handles the three column-name variants produced by
-the Python pipeline so the frontend always sees a canonical schema.
+Each line has its own per-line files (line{N}_latest.csv, line{N}_{ts}.csv,
+ablation_{prefix}_latest.csv, efficiency/line{N}_latest.csv). This script
+copies them all to viz-frontend/public/data/ so the visualization
+platform can read them.
+
+Per-line separation: NO cross-line aggregation. If a viz page needs
+data from another line, it fetches that line's _latest.csv directly.
 """
 import shutil
 from pathlib import Path
@@ -12,6 +16,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 RESULTS_DIR = PROJECT_ROOT / "results"
 FRONTEND_DATA = PROJECT_ROOT / "viz-frontend" / "public" / "data"
+EFFICIENCY_DIR = RESULTS_DIR / "efficiency"
 
 # Column name normalizations: alias -> canonical
 COLUMN_ALIASES = {
@@ -66,7 +71,7 @@ def normalize_csv(path: Path, dest: Path) -> int:
 
 def main() -> None:
     print("=" * 60)
-    print("Sync Results -> viz-frontend/public/data/")
+    print("Sync Results (per-line) -> viz-frontend/public/data/")
     print("=" * 60)
 
     if not RESULTS_DIR.exists():
@@ -74,41 +79,55 @@ def main() -> None:
         return
 
     FRONTEND_DATA.mkdir(parents=True, exist_ok=True)
-
-    # Map: source path -> destination filename
-    # Canonical files (always synced)
-    sources = [
-        (RESULTS_DIR / "main_results.csv", FRONTEND_DATA / "main_results.csv"),
-        (RESULTS_DIR / "efficiency" / "flops_params_summary.csv", FRONTEND_DATA / "efficiency_summary.csv"),
-        (RESULTS_DIR / "ablation_kan.csv", FRONTEND_DATA / "ablation_kan.csv"),
-        (RESULTS_DIR / "ablation_lite.csv", FRONTEND_DATA / "ablation_lite.csv"),
-    ]
+    (FRONTEND_DATA / "efficiency").mkdir(parents=True, exist_ok=True)
 
     total_rows = 0
-    for src, dest in sources:
-        total_rows += normalize_csv(src, dest)
 
-    # Also keep timestamped copies for history
+    # === Per-line "latest" files (always current, viz reads these) ===
     print()
-    print("Timestamped line files (line1_*, line2_*, line3_*):")
-    for src in sorted(RESULTS_DIR.glob("line*.csv")):
-        dest = FRONTEND_DATA / src.name
-        total_rows += normalize_csv(src, dest)
+    print("Per-line latest files (viz entry points):")
+    for n in (1, 2, 3):
+        latest = RESULTS_DIR / f"line{n}_latest.csv"
+        dest = FRONTEND_DATA / f"line{n}_latest.csv"
+        total_rows += normalize_csv(latest, dest)
+    for prefix in ("kan", "lite"):
+        latest = RESULTS_DIR / f"ablation_{prefix}_latest.csv"
+        dest = FRONTEND_DATA / f"ablation_{prefix}_latest.csv"
+        total_rows += normalize_csv(latest, dest)
+    for n in (1, 2, 3):
+        eff = EFFICIENCY_DIR / f"line{n}_latest.csv"
+        dest = FRONTEND_DATA / "efficiency" / f"line{n}_latest.csv"
+        total_rows += normalize_csv(eff, dest)
 
+    # === Per-line timestamped files (history) ===
     print()
-    print("Timestamped ablation files (ablation_kan_*, ablation_lite_*):")
-    for src in sorted(RESULTS_DIR.glob("ablation_kan_*.csv")):
-        if src.name == "ablation_kan.csv":
+    print("Per-line timestamped files (history):")
+    for src in sorted(RESULTS_DIR.glob("line*_*.csv")):
+        if src.name.endswith("_latest.csv") or src.name.endswith("_partial.csv"):
             continue
         dest = FRONTEND_DATA / src.name
         total_rows += normalize_csv(src, dest)
-    for src in sorted(RESULTS_DIR.glob("ablation_lite_*.csv")):
-        if src.name == "ablation_lite.csv":
+    for src in sorted(RESULTS_DIR.glob("ablation_*_*.csv")):
+        if src.name.endswith("_latest.csv") or src.name.endswith("_partial.csv"):
             continue
         dest = FRONTEND_DATA / src.name
         total_rows += normalize_csv(src, dest)
+    if EFFICIENCY_DIR.exists():
+        for src in sorted(EFFICIENCY_DIR.glob("line*_*.csv")):
+            if src.name.endswith("_latest.csv"):
+                continue
+            dest = FRONTEND_DATA / "efficiency" / src.name
+            total_rows += normalize_csv(src, dest)
 
-    # Legacy ablation_synthetic.csv (kept for backward compat with old viz)
+    # === Legacy files (kept for backward compat with old viz) ===
+    print()
+    print("Legacy files (old viz compatibility):")
+    legacy = RESULTS_DIR / "main_results.csv"
+    if legacy.exists():
+        total_rows += normalize_csv(legacy, FRONTEND_DATA / "main_results.csv")
+    legacy_eff = EFFICIENCY_DIR / "flops_params_summary.csv"
+    if legacy_eff.exists():
+        total_rows += normalize_csv(legacy_eff, FRONTEND_DATA / "efficiency_summary.csv")
     synth = RESULTS_DIR / "ablation_synthetic.csv"
     if synth.exists():
         total_rows += normalize_csv(synth, FRONTEND_DATA / "ablation_results.csv")

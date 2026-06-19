@@ -36,6 +36,7 @@ from _common import (
     setup_path,
     run_experiment,
     save_ablation_results,
+    append_to_partial,
     print_summary,
 )
 
@@ -86,7 +87,11 @@ def main():
             print(f"\n[{current}/{total}]")
             extra = {"label": setting_label, **setting_config}
             r = run_experiment(MODEL, dataset, SEQ_LEN, args.pred_len,
-                               extra_config=extra, epochs=args.epochs, gpu=args.gpu)
+                               extra_config=extra, epochs=args.epochs, gpu=args.gpu,
+                               on_complete=lambda res: append_to_partial(
+                                   {**res, "ablation": LITE_GROUP_NAME, "setting": setting_label},
+                                   ablation_prefix="lite",
+                               ))
             r["ablation"] = LITE_GROUP_NAME
             r["setting"] = setting_label
             results.append(r)

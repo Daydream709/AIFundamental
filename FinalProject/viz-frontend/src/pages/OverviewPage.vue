@@ -88,19 +88,27 @@ onMounted(async () => {
   await dataStore.loadAll();
 });
 
-const totalRuns = computed(() => dataStore.mergedMain.length);
-const nModels = computed(() => new Set(dataStore.mergedMain.map((r) => r.model)).size);
-const nDatasets = computed(() => new Set(dataStore.mergedMain.map((r) => r.dataset)).size);
+// Aggregate stats across all available per-line data slices (not a
+// shared main_results.csv). Each slice is from its own line run.
+const allMain = computed(() => [
+  ...dataStore.line1Merged,
+  ...dataStore.line2Merged,
+  ...dataStore.line3Merged,
+]);
+
+const totalRuns = computed(() => allMain.value.length);
+const nModels = computed(() => new Set(allMain.value.map((r: any) => r.model)).size);
+const nDatasets = computed(() => new Set(allMain.value.map((r: any) => r.dataset)).size);
 
 const bestMSE = computed(() => {
   tick.value;
-  if (dataStore.mergedMain.length === 0) return "—";
-  const v = dataStore.mergedMain.reduce((min, r) => (r.MSE !== undefined && r.MSE < min ? r.MSE : min), Infinity);
+  if (allMain.value.length === 0) return "—";
+  const v = allMain.value.reduce((min: number, r: any) => (r.MSE !== undefined && r.MSE < min ? r.MSE : min), Infinity);
   return v === Infinity ? "—" : formatMetric("MSE", v);
 });
 const bestModel = computed(() => {
-  if (dataStore.mergedMain.length === 0) return "—";
-  const best = dataStore.mergedMain.reduce((b, r) => (r.MSE !== undefined && (b.MSE === undefined || r.MSE < b.MSE) ? r : b), {} as any);
+  if (allMain.value.length === 0) return "—";
+  const best = allMain.value.reduce((b: any, r: any) => (r.MSE !== undefined && (b.MSE === undefined || r.MSE < b.MSE) ? r : b), {} as any);
   return best.model ? displayModel(best.model) : "—";
 });
 

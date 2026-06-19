@@ -1,14 +1,19 @@
 /**
- * Pinia store for CSV data cache.
- * Loads once on first access, shared across all pages.
+ * Pinia store for per-line data cache.
+ *
+ * Strictly per-line: each line has its own slice. Cross-line data
+ * references should load the relevant line's _latest.csv directly
+ * (see useCSVLoader.ts).
  */
 import { defineStore } from "pinia";
 import {
-  loadAblation,
-  loadEfficiency,
+  loadAblationKan,
+  loadAblationLite,
   loadFileStatus,
-  loadMainResults,
+  loadLineData,
+  loadLineEfficiency,
   mergeEfficiency,
+  type FileStatus,
 } from "@/composables/useCSVLoader";
 import type { ResultRow, AblationRow } from "@/types/results";
 
@@ -16,18 +21,36 @@ export const useDataStore = defineStore("data", {
   state: () => ({
     loading: false,
     loaded: false,
-    mainResults: [] as ResultRow[],
-    efficiency: [] as { model: string; dataset: string; "Params(M)"?: number; "FLOPs(G)"?: number }[],
-    ablation: [] as AblationRow[],
-    fileStatus: {} as Record<string, string>,
     lastLoadedAt: 0,
+
+    // Per-line main results (Line 1, 2, 3)
+    line1Data: [] as ResultRow[],
+    line2Data: [] as ResultRow[],
+    line3Data: [] as ResultRow[],
+
+    // Per-line efficiency (Line 1, 2, 3)
+    line1Efficiency: [] as { model: string; dataset: string; "Params(M)"?: number; "FLOPs(G)"?: number }[],
+    line2Efficiency: [] as { model: string; dataset: string; "Params(M)"?: number; "FLOPs(G)"?: number }[],
+    line3Efficiency: [] as { model: string; dataset: string; "Params(M)"?: number; "FLOPs(G)"?: number }[],
+
+    // Per-prefix ablation (Line 4a KAN, Line 4b Lite)
+    kanAblation: [] as AblationRow[],
+    liteAblation: [] as AblationRow[],
+
+    // Per-line file status (for Overview page)
+    fileStatus: {} as FileStatus,
   }),
 
   getters: {
-    mergedMain(state): ResultRow[] {
-      return mergeEfficiency(state.mainResults, state.efficiency);
-    },
-    isReady(state): boolean {
+    /**
+     * Per-line merged data (main + efficiency on model × dataset).
+     * Used by the LinePageLayout for Line 1/2/3.
+     */
+    line1Merged: (state) => mergeEfficiency(state.line1Data, state.line1Efficiency),
+    line2Merged: (state) => mergeEfficiency(state.line2Data, state.line2Efficiency),
+    line3Merged: (state) => mergeEfficiency(state.line3Data, state.line3Efficiency),
+
+    isReady(state) {
       return state.loaded && !state.loading;
     },
   },
@@ -37,15 +60,30 @@ export const useDataStore = defineStore("data", {
       if (this.loaded && Date.now() - this.lastLoadedAt < 60_000) return;
       this.loading = true;
       try {
-        const [main, eff, abl, status] = await Promise.all([
-          loadMainResults(),
-          loadEfficiency(),
-          loadAblation(),
+        const [
+          l1, l2, l3,
+          e1, e2, e3,
+          kan, lite,
+          status,
+        ] = await Promise.all([
+          loadLineData(1),
+          loadLineData(2),
+          loadLineData(3),
+          loadLineEfficiency(1),
+          loadLineEfficiency(2),
+          loadLineEfficiency(3),
+          loadAblationKan(),
+          loadAblationLite(),
           loadFileStatus(),
         ]);
-        this.mainResults = main;
-        this.efficiency = eff;
-        this.ablation = abl;
+        this.line1Data = l1;
+        this.line2Data = l2;
+        this.line3Data = l3;
+        this.line1Efficiency = e1;
+        this.line2Efficiency = e2;
+        this.line3Efficiency = e3;
+        this.kanAblation = kan;
+        this.liteAblation = lite;
         this.fileStatus = status;
         this.loaded = true;
         this.lastLoadedAt = Date.now();

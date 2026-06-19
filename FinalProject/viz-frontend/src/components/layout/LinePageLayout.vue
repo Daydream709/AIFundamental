@@ -170,29 +170,47 @@ const textModeOptions = computed(() =>
 );
 const ablationGroupOptions = computed(() => {
   if (props.line.dataSource !== "ablation") return [];
-  // Only show groups that belong to this line's research topic
+  // Only show groups that belong to this line's research topic.
+  // Data source depends on which line: KAN (4) or Lite (5).
   const allowed = props.line.ablationGroups;
+  const src: any[] =
+    props.line.number === 4 ? dataStore.kanAblation :
+    props.line.number === 5 ? dataStore.liteAblation : [];
   const groups = Array.from(
     new Set(
-      dataStore.ablation
-        .filter((r) => !allowed || allowed.includes(r.ablation))
-        .map((r) => r.ablation)
+      src
+        .filter((r: any) => !allowed || allowed.includes(r.ablation))
+        .map((r: any) => r.ablation)
     )
   );
-  return groups.map((g) => ({ label: g, value: g }));
+  return groups.map((g: string) => ({ label: g, value: g }));
 });
 
 // ---- Data filtering ----
 const rawData = computed<AnyResultRow[]>(() => {
-  if (props.line.dataSource === "ablation") {
-    // Pre-filter ablation data to only the groups this line studies
+  // Strictly per-line: each LineN page reads from its own data slice.
+  // No cross-line aggregation here — if a viz needs another line's
+  // data, the page loads it explicitly elsewhere.
+  if (props.line.number === 4) {
+    // KAN ablation
     const allowed = props.line.ablationGroups;
     if (allowed && allowed.length > 0) {
-      return dataStore.ablation.filter((r) => allowed.includes(r.ablation)) as AnyResultRow[];
+      return dataStore.kanAblation.filter((r) => allowed.includes(r.ablation)) as AnyResultRow[];
     }
-    return dataStore.ablation as AnyResultRow[];
+    return dataStore.kanAblation as AnyResultRow[];
   }
-  return dataStore.mergedMain as AnyResultRow[];
+  if (props.line.number === 5) {
+    // Lite ablation
+    const allowed = props.line.ablationGroups;
+    if (allowed && allowed.length > 0) {
+      return dataStore.liteAblation.filter((r) => allowed.includes(r.ablation)) as AnyResultRow[];
+    }
+    return dataStore.liteAblation as AnyResultRow[];
+  }
+  if (props.line.number === 1) return dataStore.line1Merged as AnyResultRow[];
+  if (props.line.number === 2) return dataStore.line2Merged as AnyResultRow[];
+  if (props.line.number === 3) return dataStore.line3Merged as AnyResultRow[];
+  return [];
 });
 
 const filteredData = computed<AnyResultRow[]>(() => {

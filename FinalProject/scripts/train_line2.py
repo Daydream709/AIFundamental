@@ -34,6 +34,7 @@ from _common import (
     save_line_results,
     save_efficiency,
     efficiency_rows_from,
+    append_to_partial,
     print_summary,
 )
 
@@ -80,13 +81,16 @@ def main():
                 # Environment 上 KANiTransformer 开启概率输出
                 # (here we don't include Environment so no special case)
                 r = run_experiment(model, dataset, SEQ_LEN, pred_len,
-                                   epochs=args.epochs, gpu=args.gpu)
+                                   epochs=args.epochs, gpu=args.gpu,
+                                   on_complete=lambda res: append_to_partial(
+                                       {**res, "line": 2}, line=2
+                                   ))
                 r["line"] = 2
                 results.append(r)
 
     df = pd.DataFrame(results)
     save_line_results(df, line_number=2)
-    save_efficiency(efficiency_rows_from(df))
+    save_efficiency(efficiency_rows_from(df), line=2)
     print_summary(results, "Line 2")
 
 

@@ -1,14 +1,31 @@
 """
 Shared helpers for train_line*.py scripts.
 
-Output strategy (same across all 4 line scripts):
-  - results/line{N}_{ts}.csv           — per-run CSV (lowercase columns from exp.train)
-  - results/main_results.csv           — APPENDED, uppercase canonical columns
-  - results/ablation_{prefix}.csv      — APPENDED (for line 4 only)
-  - results/efficiency/flops_params_summary.csv — UPDATED (dedup by model+dataset)
+Data flow (per-experiment real-time save + final per-line aggregation):
+  1. Single run_experiment() finishes → append 1 row to line{N}_partial.csv
+     (so a mid-run crash only loses the currently-running experiment)
+  2. All experiments in the script finish → save_line_results() renames
+     the partial file to line{N}_{ts}.csv (permanent history) AND writes
+     line{N}_latest.csv (always-current for the viz to read).
+  3. Efficiency data is written to efficiency/line{N}_{ts}.csv + line{N}_latest.csv
+     (per-line, NOT accumulated into a shared file).
+  4. exp_train.py's internal ResultLogger.log() is left alone (we just
+     never call exp.save_results() / ResultLogger.save() — its records
+     are in-memory only and don't leak to disk).
 
-The visualization platform (viz-frontend/) reads from these files via
-scripts/sync_results.py → viz-frontend/public/data/.
+Output files in results/ (per line run, fully self-contained):
+  - line{N}_{ts}.csv                (timestamped snapshot, history)
+  - line{N}_latest.csv              (always current; viz reads this)
+  - line{N}_partial.csv             (live-progress; removed at end)
+  - efficiency/line{N}_{ts}.csv     (efficiency snapshot, history)
+  - efficiency/line{N}_latest.csv   (efficiency, always current)
+
+  - ablation_{prefix}_{ts}.csv      (timestamped snapshot, history)
+  - ablation_{prefix}_latest.csv    (always current; viz reads this)
+  - ablation_{prefix}_partial.csv   (live-progress; removed at end)
+
+NOTE: There is NO cross-line aggregation. If a viz page needs data
+from another line, it fetches that line's _latest.csv directly.
 """
 from __future__ import annotations
 
@@ -61,89 +78,156 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Output writers
+# Output writers (per-line, NO cross-line accumulation)
 # ---------------------------------------------------------------------------
 def _ensure_results_dir() -> None:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     EFFICIENCY_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _append_csv(path: Path, df_new: pd.DataFrame) -> int:
-    """Append df_new to path (creating if needed). Returns total rows after append."""
+def _partial_path(line: Optional[int] = None, ablation_prefix: Optional[str] = None) -> Path:
+    """Resolve the per-script-run live-progress CSV path."""
+    if ablation_prefix:
+        return RESULTS_DIR / f"ablation_{ablation_prefix}_partial.csv"
+    if line is not None:
+        return RESULTS_DIR / f"line{line}_partial.csv"
+    raise ValueError("Must provide either line or ablation_prefix")
+
+
+def append_to_partial(result: Dict[str, Any], line: Optional[int] = None,
+                      ablation_prefix: Optional[str] = None) -> None:
+    """Append a single result row to the live-progress CSV.
+
+    Called immediately after each run_experiment() so a mid-run crash
+    only loses the currently-running experiment, not all completed ones.
+    """
+    _ensure_results_dir()
+    df = pd.DataFrame([result])
+    df = normalize_columns(df)
+    path = _partial_path(line=line, ablation_prefix=ablation_prefix)
     if path.exists():
         existing = pd.read_csv(path)
-        combined = pd.concat([existing, df_new], ignore_index=True)
+        combined = pd.concat([existing, df], ignore_index=True)
     else:
-        combined = df_new.copy()
+        combined = df
     combined.to_csv(path, index=False)
-    return len(combined)
+
+
+def _rename_partial_to_timestamped(
+    line: Optional[int] = None, ablation_prefix: Optional[str] = None,
+) -> Optional[Path]:
+    """Move the partial CSV to a timestamped filename.
+
+    Returns the new timestamped path, or None if the partial didn't exist.
+    """
+    partial = _partial_path(line=line, ablation_prefix=ablation_prefix)
+    if not partial.exists():
+        return None
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if ablation_prefix:
+        new_path = RESULTS_DIR / f"ablation_{ablation_prefix}_{ts}.csv"
+    else:
+        new_path = RESULTS_DIR / f"line{line}_{ts}.csv"
+    os.replace(partial, new_path)
+    return new_path
+
+
+def _write_latest(df: pd.DataFrame, line: Optional[int] = None,
+                  ablation_prefix: Optional[str] = None) -> Path:
+    """Write to the *_latest.csv file (overwrites any prior latest).
+
+    This is what the visualization platform reads.
+    """
+    if ablation_prefix:
+        path = RESULTS_DIR / f"ablation_{ablation_prefix}_latest.csv"
+    else:
+        path = RESULTS_DIR / f"line{line}_latest.csv"
+    df.to_csv(path, index=False)
+    return path
 
 
 def save_line_results(df: pd.DataFrame, line_number: int) -> Path:
-    """Save line results.
+    """Finalize line results.
 
-    - Saves timestamped copy: results/line{N}_{ts}.csv
-    - Appends to results/main_results.csv (canonical uppercase columns)
-    Returns the timestamped file path.
+    - Renames the live-progress file (line{N}_partial.csv) to a timestamped
+      snapshot (line{N}_{ts}.csv) when present.
+    - Writes line{N}_latest.csv (always current, for the viz to read).
+    NOTE: Does NOT accumulate into a shared main_results.csv — each line
+    is fully self-contained in its own file.
     """
     _ensure_results_dir()
     df = normalize_columns(df)
     if "line" not in df.columns:
         df["line"] = line_number
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    ts_path = RESULTS_DIR / f"line{line_number}_{ts}.csv"
-    df.to_csv(ts_path, index=False)
-    print(f"  💾 Saved: {ts_path} ({len(df)} rows)")
+    # Prefer the live-progress partial (authoritative); fall back to a
+    # synthetic timestamped write if no partial exists (e.g. all errored)
+    ts_path = _rename_partial_to_timestamped(line=line_number)
+    if ts_path is None:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts_path = RESULTS_DIR / f"line{line_number}_{ts}.csv"
+        df.to_csv(ts_path, index=False)
+    print(f"  💾 Saved: {ts_path} ({df.shape[0]} rows)")
 
-    # Append to main_results.csv (add timestamp column for traceability)
-    df_for_main = df.copy()
-    if "timestamp" not in df_for_main.columns:
-        df_for_main["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    main_path = RESULTS_DIR / "main_results.csv"
-    total = _append_csv(main_path, df_for_main)
-    print(f"  📊 Appended to: {main_path} (now {total} rows total)")
+    # Always-current file (overwrites previous latest) — the viz reads this
+    latest_path = _write_latest(df, line=line_number)
+    print(f"  📌 Latest: {latest_path} ({df.shape[0]} rows)")
     return ts_path
 
 
 def save_ablation_results(df: pd.DataFrame, prefix: str) -> Path:
-    """Save ablation results.
+    """Finalize ablation results.
 
-    - Saves timestamped copy: results/ablation_{prefix}_{ts}.csv
-    - Appends to results/ablation_{prefix}.csv (canonical file)
+    - Renames the live-progress file (ablation_{prefix}_partial.csv) to a
+      timestamped snapshot (ablation_{prefix}_{ts}.csv).
+    - Writes ablation_{prefix}_latest.csv (always current).
+    NOTE: Does NOT accumulate into a shared ablation_{prefix}.csv.
     """
     _ensure_results_dir()
     df = normalize_columns(df)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    ts_path = RESULTS_DIR / f"ablation_{prefix}_{ts}.csv"
-    df.to_csv(ts_path, index=False)
-    print(f"  💾 Saved: {ts_path} ({len(df)} rows)")
+    ts_path = _rename_partial_to_timestamped(ablation_prefix=prefix)
+    if ts_path is None:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts_path = RESULTS_DIR / f"ablation_{prefix}_{ts}.csv"
+        df.to_csv(ts_path, index=False)
+    print(f"  💾 Saved: {ts_path} ({df.shape[0]} rows)")
 
-    canonical_path = RESULTS_DIR / f"ablation_{prefix}.csv"
-    total = _append_csv(canonical_path, df)
-    print(f"  🔬 Appended to: {canonical_path} (now {total} rows total)")
+    latest_path = _write_latest(df, ablation_prefix=prefix)
+    print(f"  📌 Latest: {latest_path} ({df.shape[0]} rows)")
     return ts_path
 
 
-def save_efficiency(df: pd.DataFrame) -> None:
-    """Save efficiency data (model, dataset, Params(M), FLOPs(G)) to
-    results/efficiency/flops_params_summary.csv. Deduplicates by (model, dataset).
+def save_efficiency(df: pd.DataFrame, line: Optional[int] = None,
+                    ablation_prefix: Optional[str] = None) -> None:
+    """Save efficiency data per-line to results/efficiency/line{N}_*.csv
+    (or ablation efficiency).
+
+    Does NOT write to a shared `flops_params_summary.csv` — efficiency
+    is per-line. To see all models' efficiency, look at the relevant
+    line's efficiency file.
     """
     _ensure_results_dir()
     df = normalize_columns(df)
     needed = ["model", "dataset", "Params(M)", "FLOPs(G)"]
-    df = df[[c for c in needed if c in df.columns]].drop_duplicates(
+    df_eff = df[[c for c in needed if c in df.columns]].drop_duplicates(
         subset=["model", "dataset"], keep="last"
     )
-    path = EFFICIENCY_DIR / "flops_params_summary.csv"
-    if path.exists():
-        existing = pd.read_csv(path)
-        combined = pd.concat([existing, df], ignore_index=True)
-        combined = combined.drop_duplicates(subset=["model", "dataset"], keep="last")
-    else:
-        combined = df
-    combined.to_csv(path, index=False)
-    print(f"  ⚙️  Saved efficiency: {path} ({len(combined)} rows)")
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if ablation_prefix:
+        # Ablation runs don't currently emit efficiency — would need
+        # model-level measurement. Skip silently.
+        return
+    if line is None:
+        return
+
+    # Timestamped history
+    hist_path = EFFICIENCY_DIR / f"line{line}_{ts}.csv"
+    df_eff.to_csv(hist_path, index=False)
+    # Always-current file (overwrite)
+    latest_path = EFFICIENCY_DIR / f"line{line}_latest.csv"
+    df_eff.to_csv(latest_path, index=False)
+    print(f"  ⚙️  Efficiency: {latest_path} ({len(df_eff)} rows)")
 
 
 # ---------------------------------------------------------------------------
@@ -157,10 +241,15 @@ def run_experiment(
     extra_config: Optional[Dict[str, Any]] = None,
     epochs: int = 100,
     gpu: int = 0,
+    on_complete: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """Run one experiment, return result dict (lowercase metric keys from exp.train).
 
     On error, returns dict with status='error' and error message.
+
+    If `on_complete(result)` is provided, it's called after each experiment
+    (success or failure) BEFORE the function returns — used for real-time
+    partial-CSV saving. The callback should not raise.
     """
     from configs.dataset_configs import get_dataset_config  # noqa: E402
     from exp.exp_train import ExpTrain  # noqa: E402
@@ -197,6 +286,12 @@ def run_experiment(
         exp = ExpTrain(config)
         result = exp.train()
         result["status"] = "success"
+        mse = result.get("mse")
+        mae = result.get("mae")
+        if isinstance(mse, (int, float)) and isinstance(mae, (int, float)):
+            print(f"    ✓ MSE={mse:.6f}, MAE={mae:.6f}")
+        else:
+            print(f"    ✓ success")
     except Exception as e:
         print(f"    ❌ ERROR: {e}")
         traceback.print_exc()
@@ -212,11 +307,20 @@ def run_experiment(
     )
     if extra_config and "label" in extra_config:
         result["label"] = extra_config["label"]
+
+    # Real-time per-experiment save: append to partial CSV immediately
+    if on_complete is not None:
+        try:
+            on_complete(result)
+        except Exception as cb_err:
+            # Callback failures must NOT break the experiment loop
+            print(f"    ⚠ on_complete callback failed: {cb_err}")
+
     return result
 
 
 def efficiency_rows_from(df: pd.DataFrame) -> pd.DataFrame:
-    """Extract efficiency columns (model, dataset, Params(M), FLOPs(G)) for save_efficiency."""
+    """Extract efficiency columns (model, dataset, Params(M), FLOPs(G))."""
     df = normalize_columns(df)
     needed = ["model", "dataset", "Params(M)", "FLOPs(G)"]
     return df[[c for c in needed if c in df.columns]].drop_duplicates(
