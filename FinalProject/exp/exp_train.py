@@ -14,6 +14,9 @@ from data_provider.data_factory import data_provider
 from utils.tools import EarlyStopping
 from utils.metrics import metric
 from utils.result_logger import ResultLogger
+from utils.efficiency import (
+    count_parameters, measure_flops, measure_inference_time, measure_gpu_memory,
+)
 
 
 class ExpTrain(ExpBasic):
@@ -147,7 +150,7 @@ class ExpTrain(ExpBasic):
         return total_loss / max(n_batches, 1)
 
     def test(self):
-        """在测试集上评估"""
+        """在测试集上评估 — 收集精度 + 效率指标"""
         test_loader = self._get_data('test')
         self.model.eval()
 
@@ -166,7 +169,6 @@ class ExpTrain(ExpBasic):
                 pred, _ = self._forward_pass(
                     self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
                 )
-                # pred is already the mean
 
                 preds.append(pred.cpu().numpy())
                 trues.append(true.cpu().numpy())
@@ -176,8 +178,18 @@ class ExpTrain(ExpBasic):
 
         mse, mae, rmse, mape, smape = metric(preds, trues)
 
-        # 记录结果
-        n_params = sum(p.numel() for p in self.model.parameters()) / 1e6
+        # 收集效率指标 (参数量 / FLOPs / 推理时间 / GPU 显存)
+        n_params, _ = count_parameters(self.model)
+        device_str = 'cuda' if (self.config.use_gpu and torch.cuda.is_available()) else 'cpu'
+        input_shape = (self.config.batch_size, self.config.seq_len, self.config.enc_in)
+        flops_g = measure_flops(self.model, input_shape, device=device_str,
+                                 freq=self.config.freq)
+        infer_time_ms = measure_inference_time(self.model, input_shape, device=device_str, n_runs=50,
+                                                freq=self.config.freq)
+        gpu_mem_mb = measure_gpu_memory(self.model, input_shape, device=device_str,
+                                         freq=self.config.freq)
+
+        # 记录结果 (含效率指标)
         self.logger.log(
             model=self.config.model,
             dataset=self.config.data,
@@ -185,6 +197,9 @@ class ExpTrain(ExpBasic):
             pred_len=self.config.pred_len,
             mse=mse, mae=mae, rmse=rmse, mape=mape, smape=smape,
             params_m=n_params,
+            flops_g=flops_g,
+            infer_time_ms=infer_time_ms,
+            gpu_mem_mb=gpu_mem_mb,
             loss_type=self.config.loss,
         )
 
@@ -192,8 +207,12 @@ class ExpTrain(ExpBasic):
               f'H={self.config.seq_len}, F={self.config.pred_len}):')
         print(f'    MSE={mse:.6f}, MAE={mae:.6f}, RMSE={rmse:.6f}, '
               f'MAPE={mape:.4f}%, SMAPE={smape:.4f}%')
+        print(f'    Params={n_params:.3f}M, FLOPs={flops_g:.3f}G, '
+              f'InferTime={infer_time_ms:.2f}ms, GPUMem={gpu_mem_mb:.1f}MB')
 
-        return {'mse': mse, 'mae': mae, 'rmse': rmse, 'mape': mape, 'smape': smape}
+        return {'mse': mse, 'mae': mae, 'rmse': rmse, 'mape': mape, 'smape': smape,
+                'params_m': n_params, 'flops_g': flops_g,
+                'infer_time_ms': infer_time_ms, 'gpu_mem_mb': gpu_mem_mb}
 
     def save_results(self):
         """保存所有实验结果到 CSV"""

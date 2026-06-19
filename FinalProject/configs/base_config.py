@@ -57,6 +57,7 @@ class BaseConfig:
     # ==================== KAN-iTransformer 专用 ====================
     kan_grid_size: int = 5            # KAN B-spline grid大小
     use_cfd: bool = True              # 级联频域分解 (Cascaded Freq Decomp)
+    use_wavelet: bool = False         # ★ 创新优化: 用 Wavelet 替代 FFT (适合非平稳信号)
     use_revin: bool = True            # 可逆实例归一化
     use_probabilistic: bool = True    # 概率输出 (GaussianNLL)
     use_masked_pretrain: bool = False # 掩码重建自监督预训练
@@ -67,6 +68,8 @@ class BaseConfig:
     sparse_ratio: int = 4             # 下采样因子 p (H -> H/p)
     group_size: int = 16              # 分组MLP的组大小
     fft_residual_k: int = 2           # FFT残差保留的主频数
+    use_lite_revin: bool = True       # ★ 创新优化: 极简RevIN实例归一化
+    use_shared_weight: bool = True    # ★ 创新优化: trend_extractor 共享权重 + 变量bias
 
     # ==================== SparseTSF 专用 ====================
     period_len: int = 24              # 稀疏采样的周期长度

@@ -1,18 +1,35 @@
-torch>=2.0
-numpy
-pandas
-scikit-learn
-matplotlib
-seaborn
-gradio>=4.0
-fvcore
-chronos-forecasting
-transformers
-sentence-transformers
-einops
-reformer-pytorch
-mamba-ssm
-opencv-python
-scipy
-tqdm
-Pillow
+# FinalProject v2.0 依赖
+# 7个时间序列预测模型 + 多模态融合 + 效率分析
+
+# ==================== 深度学习核心 ====================
+torch>=2.0          # PyTorch 核心框架
+numpy               # 数值计算
+pandas              # 数据处理 (CSV加载/结果汇总)
+einops              # 张量操作 (Mamba/Transformer 使用)
+
+# ==================== 第三方时序模型 ====================
+chronos-forecasting # Amazon Chronos 基础模型
+transformers        # HuggingFace transformers (Chronos 内部依赖)
+sentence-transformers # 文本嵌入 (多模态)
+mamba-ssm           # Mamba SSM (备选, 默认用 MambaSimple)
+reformer-pytorch    # Reformer 注意力
+
+# ==================== 效率分析 ====================
+fvcore              # FLOPs 统计 (FlopCountAnalysis)
+thop                # 备选 FLOPs 工具 (可被fvcore替代)
+
+# ==================== 评估与可视化 ====================
+scikit-learn        # 数据预处理 (StandardScaler等)
+matplotlib          # 绘图
+seaborn             # 统计图
+Pillow              # 图像处理 (递归图)
+
+# ==================== 多模态 ====================
+opencv-python       # 图像处理 (递归图生成)
+
+# ==================== 应用 ====================
+gradio>=4.0         # Web Demo
+
+# ==================== 其他 ====================
+scipy               # 科学计算 (部分损失函数)
+tqdm                # 进度条

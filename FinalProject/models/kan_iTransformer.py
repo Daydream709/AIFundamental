@@ -1,9 +1,10 @@
 """
 KAN-iTransformer — 核心贡献1: 冲刺最高精度 (~120M参数)
 
-基于 iTransformer 倒置架构，集成5大优化模块:
-  模块1: KAN层 (B-spline) 替换FFN + 级联频域分解 (CFD)
-        逐层剥离趋势/季节/残差，交由不同KAN专家处理
+基于 iTransformer 倒置架构，集成 5+2=7 大优化模块 (v2.1):
+  模块1: 真实 B-spline KAN (Cox-de Boor 递推) 替换 FFN + 级联频域分解 (CFD)
+        逐层剥离趋势/季节/残差，交由不同 KAN 专家处理
+  模块1+: Wavelet-CFD (新增, --use_wavelet 开关) - 适合非平稳信号
   模块2: 掩码重建自监督预训练 (mask_ratio=15%)
         让模型学习数据内在表征，提升鲁棒性
   模块3: 概率输出 (GaussianNLL) + 共形预测校准
@@ -16,6 +17,7 @@ KAN-iTransformer — 核心贡献1: 冲刺最高精度 (~120M参数)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from layers.Embed import DataEmbedding_inverted
 from layers.SelfAttention_Family import FullAttention, AttentionLayer
 from layers.kan_layers import KANLayer
@@ -82,6 +84,119 @@ class CascadedFreqDecomp(nn.Module):
         return x_trend, x_seasonal, x_residual
 
 
+class WaveletCFD(nn.Module):
+    """
+    Wavelet 版级联频域分解 (Wavelet-CFD)
+
+    创新点 (v2.1 优化):
+      - 用 Wavelet (DWT) 替代 FFT 频域分解
+      - Wavelet 在时频两域都有分辨率, 适合非平稳信号
+        (FFT 假设全局平稳, 难以处理突变; DWT 能捕捉局部突变)
+      - 小波系数按尺度 (scale) 自然分层:
+          approximation (a) ≈ 趋势 (低频)
+          detail (d1, d2, ...) ≈ 不同尺度的细节 (中-高频)
+      - 创新: 配合级联结构, 每一层做不同尺度的 DWT 分解,
+        残差依次进入下一层进一步分解
+
+    数学形式:
+      输入 x:  [B, L, C]
+      对每变量 DWT 分解: x → [a_n, d_n, d_{n-1}, ..., d_1]
+        其中 a_n 是低频近似 (≈ 趋势), d_i 是各尺度细节 (≈ 季节)
+      CFD 分配:
+        trend = a_n (低频趋势)
+        seasonal = largest |d_i| 分量 (主季节)
+        residual = x - trend - seasonal
+    """
+
+    def __init__(self, wavelet='db4', level=2):
+        super().__init__()
+        try:
+            import pywt
+        except ImportError:
+            raise ImportError("需要安装 PyWavelets: pip install PyWavelets")
+        self.pywt = pywt
+        self.wavelet = wavelet
+        self.level = level
+
+    def _dwt_decompose(self, x_1d):
+        """
+        对单条 1D 序列做 DWT 分解 (使用 pywt)
+
+        Args:
+            x_1d: [B, L]
+        Returns:
+            approx: [B, L] (低频近似 ≈ 趋势)
+            detail_main: [B, L] (主细节分量 ≈ 季节)
+            residual: [B, L] (残差)
+        """
+        B, L = x_1d.shape
+        # 动态决定 level: 信号太短 (db4 需 ≥ 8) 时降级
+        max_level = self.pywt.dwt_max_level(L, self.wavelet)
+        eff_level = min(self.level, max_level, max(1, L // 8))
+
+        approx_list = []
+        detail_list = []
+
+        for b in range(B):
+            coeffs = self.pywt.wavedec(x_1d[b].detach().cpu().numpy(), self.wavelet, level=eff_level)
+            # coeffs = [cA_n, cD_n, cD_{n-1}, ..., cD_1]
+            # 用 pywt 重建每个分量 (其余置零) 来获得等长信号
+            # 重建到原始长度 L
+            approx = self.pywt.waverec(
+                [coeffs[0]] + [np.zeros_like(c) for c in coeffs[1:]],
+                self.wavelet
+            )[:L]
+            approx_list.append(torch.from_numpy(approx).float().to(x_1d.device))
+
+            # 主细节分量: 找幅度最大的 detail
+            if len(coeffs) > 1:
+                abs_details = [np.abs(c).max() for c in coeffs[1:]]
+                main_idx = int(np.argmax(abs_details)) + 1  # +1 因为 coeffs[0] 是 approx
+                detail = self.pywt.waverec(
+                    [np.zeros_like(coeffs[0])] +
+                    [coeffs[i] if i == main_idx else np.zeros_like(coeffs[i]) for i in range(1, len(coeffs))],
+                    self.wavelet
+                )[:L]
+            else:
+                # 极短信号: 没法分解, 细节全 0
+                detail = np.zeros(L)
+            detail_list.append(torch.from_numpy(detail).float().to(x_1d.device))
+
+        approx = torch.stack(approx_list, dim=0)
+        detail_main = torch.stack(detail_list, dim=0)
+        residual = x_1d - approx - detail_main
+        return approx, detail_main, residual
+
+    def forward(self, x, layer_idx=0):
+        """
+        x: [B, L, C]
+        Returns: x_trend, x_seasonal, x_residual (各 [B, L, C])
+        """
+        B, L, C = x.shape
+
+        x_trend = torch.zeros_like(x)
+        x_seasonal = torch.zeros_like(x)
+        x_residual = torch.zeros_like(x)
+
+        for c in range(C):
+            approx, detail, residual = self._dwt_decompose(x[:, :, c])
+            # 层级剥离: 高层(layer_idx 大)剥离更多残差细节
+            if layer_idx > 0:
+                # 高层用更细的 wavelet 分解 (level + 1)
+                self.level = min(self.level + 1, 4)
+                approx2, detail2, residual2 = self._dwt_decompose(residual)
+                x_trend[:, :, c] = approx
+                x_seasonal[:, :, c] = detail + detail2
+                x_residual[:, :, c] = residual2
+                self.level = max(self.level - 1, 1)  # 还原
+            else:
+                x_trend[:, :, c] = approx
+                x_seasonal[:, :, c] = detail
+                x_residual[:, :, c] = residual
+
+        return x_trend, x_seasonal, x_residual
+
+
 # ============================================================================
 # KAN 编码器层 (含 CFD)
 # ============================================================================
@@ -98,7 +213,7 @@ class KANCFDEncoderLayer(nn.Module):
     """
 
     def __init__(self, attention, d_model, d_ff=None, dropout=0.1,
-                 kan_grid_size=5, top_k=5, layer_idx=0):
+                 kan_grid_size=5, top_k=5, layer_idx=0, use_wavelet=False):
         super().__init__()
         d_ff = d_ff or 4 * d_model
         self.attention = attention
@@ -107,8 +222,12 @@ class KANCFDEncoderLayer(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_idx = layer_idx
 
-        # CFD
-        self.cfd = CascadedFreqDecomp(top_k=top_k)
+        # CFD: FFT 版 或 Wavelet 版
+        self.use_wavelet = use_wavelet
+        if use_wavelet:
+            self.cfd = WaveletCFD(wavelet='db4', level=2)
+        else:
+            self.cfd = CascadedFreqDecomp(top_k=top_k)
 
         # 三个 KAN 专家 (趋势/季节/残差)
         self.trend_kan = KANLayer(d_model, d_ff, d_model, grid_size=kan_grid_size)
@@ -271,6 +390,7 @@ class Model(nn.Module):
                     kan_grid_size=kan_grid_size,
                     top_k=top_k,
                     layer_idx=i,
+                    use_wavelet=getattr(configs, 'use_wavelet', False),
                 )
             else:
                 # 无CFD的简单KAN编码器层
