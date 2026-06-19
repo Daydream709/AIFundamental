@@ -1,0 +1,550 @@
+
+============================================================
+  Hyperparameter Tuning — FinalProject v2.0
+  Models: ['KANiTransformer']
+  Dataset: ETTm2 (pred_len=96)
+  GPU: 0
+============================================================
+
+============================================================
+  Step 1: KAN-iTransformer e_layers 搜索
+  Fixed lr=1e-4
+============================================================
+
+  >> KANiTransformer | seq_len=96, pred_len=96, d_model=512, n_heads=8, d_ff=2048, dropout=0.1, batch_size=32, train_epochs=50, patience=10, use_cfd=True, use_revin=True, use_probabilistic=True, kan_grid_size=5, top_k=5, e_layers=1, learning_rate=0.0001
+  [Preset] KANiTransformer on ETTm2:
+    d_model=512
+    n_heads=8
+    d_ff=2048
+    dropout=0.1
+    learning_rate=0.0001
+    patience=10
+    kan_grid_size=5
+    top_k=5
+  Model: KANiTransformer, Params: 59,399,377
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.161304 | Val Loss: 0.168477
+  Validation loss decreased (inf -> 0.168477). Saving model...
+Epoch 2/50 | Train Loss: 0.150268 | Val Loss: 0.168372
+  Validation loss decreased (0.168477 -> 0.168372). Saving model...
+Epoch 3/50 | Train Loss: 0.144436 | Val Loss: 0.167375
+  Validation loss decreased (0.168372 -> 0.167375). Saving model...
+Epoch 4/50 | Train Loss: 0.139509 | Val Loss: 0.171570
+  EarlyStopping counter: 1 out of 10
+Epoch 5/50 | Train Loss: 0.135093 | Val Loss: 0.169376
+  EarlyStopping counter: 2 out of 10
+Epoch 6/50 | Train Loss: 0.131202 | Val Loss: 0.168976
+  EarlyStopping counter: 3 out of 10
+Epoch 7/50 | Train Loss: 0.127905 | Val Loss: 0.172043
+  EarlyStopping counter: 4 out of 10
+Epoch 8/50 | Train Loss: 0.124327 | Val Loss: 0.173026
+  EarlyStopping counter: 5 out of 10
+Epoch 9/50 | Train Loss: 0.121549 | Val Loss: 0.176796
+  EarlyStopping counter: 6 out of 10
+Epoch 10/50 | Train Loss: 0.118472 | Val Loss: 0.173338
+  EarlyStopping counter: 7 out of 10
+Epoch 11/50 | Train Loss: 0.115435 | Val Loss: 0.178737
+  EarlyStopping counter: 8 out of 10
+Epoch 12/50 | Train Loss: 0.112430 | Val Loss: 0.183779
+  EarlyStopping counter: 9 out of 10
+Epoch 13/50 | Train Loss: 0.109594 | Val Loss: 0.182925
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 13
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (KANiTransformer on ETTm2, H=96, F=96):
+    MSE=0.106573, MAE=0.226001, RMSE=0.326456, MAPE=155.7744%, SMAPE=63.4991%
+    e_layers=1: MSE=0.106573
+
+  >> KANiTransformer | seq_len=96, pred_len=96, d_model=512, n_heads=8, d_ff=2048, dropout=0.1, batch_size=32, train_epochs=50, patience=10, use_cfd=True, use_revin=True, use_probabilistic=True, kan_grid_size=5, top_k=5, e_layers=2, learning_rate=0.0001
+  [Preset] KANiTransformer on ETTm2:
+    d_model=512
+    n_heads=8
+    e_layers=2
+    d_ff=2048
+    dropout=0.1
+    learning_rate=0.0001
+    patience=10
+    kan_grid_size=5
+    top_k=5
+  Model: KANiTransformer, Params: 118,650,580
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.161525 | Val Loss: 0.172960
+  Validation loss decreased (inf -> 0.172960). Saving model...
+Epoch 2/50 | Train Loss: 0.153837 | Val Loss: 0.168007
+  Validation loss decreased (0.172960 -> 0.168007). Saving model...
+Epoch 3/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (0.168007 -> nan). Saving model...
+Epoch 4/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 5/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 6/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 7/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 8/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 9/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 10/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 11/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 12/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 13/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 14/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 15/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 16/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 17/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 18/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 19/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 20/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 21/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 22/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 23/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 24/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 25/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 26/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 27/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 28/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 29/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 30/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 31/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 32/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 33/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 34/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 35/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 36/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 37/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 38/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 39/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 40/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 41/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 42/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 43/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 44/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 45/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 46/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 47/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 48/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 49/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 50/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (KANiTransformer on ETTm2, H=96, F=96):
+    MSE=nan, MAE=nan, RMSE=nan, MAPE=nan%, SMAPE=nan%
+    e_layers=2: MSE=nan
+
+  >> KANiTransformer | seq_len=96, pred_len=96, d_model=512, n_heads=8, d_ff=2048, dropout=0.1, batch_size=32, train_epochs=50, patience=10, use_cfd=True, use_revin=True, use_probabilistic=True, kan_grid_size=5, top_k=5, e_layers=3, learning_rate=0.0001
+  [Preset] KANiTransformer on ETTm2:
+    d_model=512
+    n_heads=8
+    d_ff=2048
+    dropout=0.1
+    learning_rate=0.0001
+    patience=10
+    kan_grid_size=5
+    top_k=5
+  Model: KANiTransformer, Params: 177,901,783
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (inf -> nan). Saving model...
+Epoch 2/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 3/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 4/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 5/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 6/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 7/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 8/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 9/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 10/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 11/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 12/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 13/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 14/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 15/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 16/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 17/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 18/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 19/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 20/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 21/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 22/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 23/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 24/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 25/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 26/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 27/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 28/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 29/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 30/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 31/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 32/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 33/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 34/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 35/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 36/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 37/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 38/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 39/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 40/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 41/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 42/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 43/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 44/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 45/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 46/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 47/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 48/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 49/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 50/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (KANiTransformer on ETTm2, H=96, F=96):
+    MSE=nan, MAE=nan, RMSE=nan, MAPE=nan%, SMAPE=nan%
+    e_layers=3: MSE=nan
+
+  Step 1 最优: e_layers=1, MSE=0.106573
+
+============================================================
+  Step 2: KAN-iTransformer learning_rate 搜索
+  Fixed e_layers=1
+============================================================
+
+  >> KANiTransformer | seq_len=96, pred_len=96, d_model=512, n_heads=8, d_ff=2048, dropout=0.1, batch_size=32, train_epochs=50, patience=10, use_cfd=True, use_revin=True, use_probabilistic=True, kan_grid_size=5, top_k=5, e_layers=1, learning_rate=5e-05
+  [Preset] KANiTransformer on ETTm2:
+    d_model=512
+    n_heads=8
+    d_ff=2048
+    dropout=0.1
+    patience=10
+    kan_grid_size=5
+    top_k=5
+  Model: KANiTransformer, Params: 59,399,377
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.160816 | Val Loss: 0.168511
+  Validation loss decreased (inf -> 0.168511). Saving model...
+Epoch 2/50 | Train Loss: 0.149897 | Val Loss: 0.166546
+  Validation loss decreased (0.168511 -> 0.166546). Saving model...
+Epoch 3/50 | Train Loss: 0.145085 | Val Loss: 0.167451
+  EarlyStopping counter: 1 out of 10
+Epoch 4/50 | Train Loss: 0.141349 | Val Loss: 0.170502
+  EarlyStopping counter: 2 out of 10
+Epoch 5/50 | Train Loss: 0.137717 | Val Loss: 0.172058
+  EarlyStopping counter: 3 out of 10
+Epoch 6/50 | Train Loss: 0.135766 | Val Loss: 0.170802
+  EarlyStopping counter: 4 out of 10
+Epoch 7/50 | Train Loss: 0.132443 | Val Loss: 0.179576
+  EarlyStopping counter: 5 out of 10
+Epoch 8/50 | Train Loss: 0.130120 | Val Loss: 0.171797
+  EarlyStopping counter: 6 out of 10
+Epoch 9/50 | Train Loss: 0.128150 | Val Loss: 0.171335
+  EarlyStopping counter: 7 out of 10
+Epoch 10/50 | Train Loss: 0.125891 | Val Loss: 0.176362
+  EarlyStopping counter: 8 out of 10
+Epoch 11/50 | Train Loss: 0.123864 | Val Loss: 0.171804
+  EarlyStopping counter: 9 out of 10
+Epoch 12/50 | Train Loss: 0.121319 | Val Loss: 0.178740
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 12
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (KANiTransformer on ETTm2, H=96, F=96):
+    MSE=0.106359, MAE=0.225229, RMSE=0.326128, MAPE=150.2787%, SMAPE=63.0460%
+    lr=5e-05: MSE=0.106359
+
+  >> KANiTransformer | seq_len=96, pred_len=96, d_model=512, n_heads=8, d_ff=2048, dropout=0.1, batch_size=32, train_epochs=50, patience=10, use_cfd=True, use_revin=True, use_probabilistic=True, kan_grid_size=5, top_k=5, e_layers=1, learning_rate=0.0001
+  [Preset] KANiTransformer on ETTm2:
+    d_model=512
+    n_heads=8
+    d_ff=2048
+    dropout=0.1
+    learning_rate=0.0001
+    patience=10
+    kan_grid_size=5
+    top_k=5
+  Model: KANiTransformer, Params: 59,399,377
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.161304 | Val Loss: 0.168477
+  Validation loss decreased (inf -> 0.168477). Saving model...
+Epoch 2/50 | Train Loss: 0.150268 | Val Loss: 0.168372
+  Validation loss decreased (0.168477 -> 0.168372). Saving model...
+Epoch 3/50 | Train Loss: 0.144436 | Val Loss: 0.167375
+  Validation loss decreased (0.168372 -> 0.167375). Saving model...
+Epoch 4/50 | Train Loss: 0.139509 | Val Loss: 0.171570
+  EarlyStopping counter: 1 out of 10
+Epoch 5/50 | Train Loss: 0.135093 | Val Loss: 0.169376
+  EarlyStopping counter: 2 out of 10
+Epoch 6/50 | Train Loss: 0.131202 | Val Loss: 0.168976
+  EarlyStopping counter: 3 out of 10
+Epoch 7/50 | Train Loss: 0.127905 | Val Loss: 0.172043
+  EarlyStopping counter: 4 out of 10
+Epoch 8/50 | Train Loss: 0.124327 | Val Loss: 0.173026
+  EarlyStopping counter: 5 out of 10
+Epoch 9/50 | Train Loss: 0.121549 | Val Loss: 0.176796
+  EarlyStopping counter: 6 out of 10
+Epoch 10/50 | Train Loss: 0.118472 | Val Loss: 0.173338
+  EarlyStopping counter: 7 out of 10
+Epoch 11/50 | Train Loss: 0.115435 | Val Loss: 0.178737
+  EarlyStopping counter: 8 out of 10
+Epoch 12/50 | Train Loss: 0.112430 | Val Loss: 0.183779
+  EarlyStopping counter: 9 out of 10
+Epoch 13/50 | Train Loss: 0.109594 | Val Loss: 0.182925
+  EarlyStopping counter: 10 out of 10
+  Early stopping at epoch 13
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (KANiTransformer on ETTm2, H=96, F=96):
+    MSE=0.106573, MAE=0.226001, RMSE=0.326456, MAPE=155.7744%, SMAPE=63.4991%
+    lr=0.0001: MSE=0.106573
+
+  >> KANiTransformer | seq_len=96, pred_len=96, d_model=512, n_heads=8, d_ff=2048, dropout=0.1, batch_size=32, train_epochs=50, patience=10, use_cfd=True, use_revin=True, use_probabilistic=True, kan_grid_size=5, top_k=5, e_layers=1, learning_rate=0.0005
+  [Preset] KANiTransformer on ETTm2:
+    d_model=512
+    n_heads=8
+    d_ff=2048
+    dropout=0.1
+    patience=10
+    kan_grid_size=5
+    top_k=5
+  Model: KANiTransformer, Params: 59,399,377
+  [train] Dataset: ETTm2, samples=48585, shape=(48776, 7), text=False
+  [val] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+Epoch 1/50 | Train Loss: 0.165415 | Val Loss: 0.173358
+  Validation loss decreased (inf -> 0.173358). Saving model...
+Epoch 2/50 | Train Loss: 0.158369 | Val Loss: 0.174133
+  EarlyStopping counter: 1 out of 10
+Epoch 3/50 | Train Loss: 0.155018 | Val Loss: 0.173353
+  Validation loss decreased (0.173358 -> 0.173353). Saving model...
+Epoch 4/50 | Train Loss: 0.153612 | Val Loss: 0.172228
+  Validation loss decreased (0.173353 -> 0.172228). Saving model...
+Epoch 5/50 | Train Loss: 0.151465 | Val Loss: 0.170498
+  Validation loss decreased (0.172228 -> 0.170498). Saving model...
+Epoch 6/50 | Train Loss: 0.149382 | Val Loss: 0.170497
+  Validation loss decreased (0.170498 -> 0.170497). Saving model...
+Epoch 7/50 | Train Loss: 0.148009 | Val Loss: 0.174941
+  EarlyStopping counter: 1 out of 10
+Epoch 8/50 | Train Loss: 0.146065 | Val Loss: 0.170707
+  EarlyStopping counter: 2 out of 10
+Epoch 9/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (0.170497 -> nan). Saving model...
+Epoch 10/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 11/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 12/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 13/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 14/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 15/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 16/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 17/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 18/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 19/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 20/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 21/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 22/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 23/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 24/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 25/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 26/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 27/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 28/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 29/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 30/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 31/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 32/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 33/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 34/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 35/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 36/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 37/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 38/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 39/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 40/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 41/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 42/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 43/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 44/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 45/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 46/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 47/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 48/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 49/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+Epoch 50/50 | Train Loss: nan | Val Loss: nan
+  Validation loss decreased (nan -> nan). Saving model...
+  [test] Dataset: ETTm2, samples=10261, shape=(10452, 7), text=False
+
+  Test Results (KANiTransformer on ETTm2, H=96, F=96):
+    MSE=nan, MAE=nan, RMSE=nan, MAPE=nan%, SMAPE=nan%
+    lr=0.0005: MSE=nan
+
+  Step 2 最优: lr=5e-05, MSE=0.106359
+
+============================================================
+  KAN-iTransformer 最终配置
+  e_layers=1, lr=5e-05
+  Best MSE=0.106359
+============================================================
+  Results saved: results/tuning/KANiTransformer_20260618_205331.json
+  Best config saved: results/tuning/KANiTransformer_best_20260618_205331.json
+  [Hint] KANiTransformer tuned params: ['e_layers', 'learning_rate']
+         Values: [('e_layers', 1), ('learning_rate', 5e-05)]
+         请手动将上述值更新到 configs/model_configs.py 中
+         KANiTransformer 块的 4 个 tier (low_dim / mid_dim / high_dim / multimodal)
+
+============================================================
+  调优完成 — 最优配置汇总
+============================================================
+
+  KANiTransformer:
+    seq_len: 96
+    pred_len: 96
+    d_model: 512
+    n_heads: 8
+    d_ff: 2048
+    dropout: 0.1
+    batch_size: 32
+    train_epochs: 50
+    patience: 10
+    use_cfd: True
+    use_revin: True
+    use_probabilistic: True
+    kan_grid_size: 5
+    top_k: 5
+    e_layers: 1
+    learning_rate: 5e-05
+
+  请将以上最优配置更新到 configs/model_configs.py
+  (已自动更新)

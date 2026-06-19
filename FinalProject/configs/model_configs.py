@@ -184,7 +184,7 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,  # 不使用
             dropout=0.0, learning_rate=1e-3,  # 极简模型可用更高学习率
             batch_size=64, train_epochs=30, patience=5,
-            extra={'period_len': 24},
+            extra={'period_len': 12},
         ),
     },
 
@@ -195,10 +195,10 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
     # 设计参考: iTransformer (d_model=512) + PatchTST (e_layers=3)
     # ========================================================================
     'KANiTransformer': {
-        # 低维 (ETTm2: 7变量) — 标准配置
+        # 低维 (ETTm2: 7变量) — 调优结果: e_layers=1, lr=5e-5
         'low_dim': ModelPreset(
-            d_model=512, n_heads=8, e_layers=2, d_ff=2048,
-            dropout=0.1, learning_rate=1e-4, batch_size=32,
+            d_model=512, n_heads=8, e_layers=1, d_ff=2048,
+            dropout=0.1, learning_rate=5e-5, batch_size=32,
             train_epochs=50, patience=10,
             extra={
                 'kan_grid_size': 5, 'use_cfd': True, 'use_revin': True,
@@ -207,8 +207,8 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         ),
         # 中维 (Weather: 21变量)
         'mid_dim': ModelPreset(
-            d_model=512, n_heads=8, e_layers=3, d_ff=2048,
-            dropout=0.1, learning_rate=1e-4, batch_size=32,
+            d_model=512, n_heads=8, e_layers=1, d_ff=2048,
+            dropout=0.1, learning_rate=5e-5, batch_size=32,
             train_epochs=30, patience=10,
             extra={
                 'kan_grid_size': 5, 'use_cfd': True, 'use_revin': True,
@@ -217,8 +217,8 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         ),
         # 高维 (Electricity: 321变量) — 大模型+高维需要降低 batch_size
         'high_dim': ModelPreset(
-            d_model=512, n_heads=8, e_layers=2, d_ff=1024,
-            dropout=0.1, learning_rate=1e-4, batch_size=16,
+            d_model=512, n_heads=8, e_layers=1, d_ff=1024,
+            dropout=0.1, learning_rate=5e-5, batch_size=16,
             train_epochs=30, patience=10,
             extra={
                 'kan_grid_size': 5, 'use_cfd': True, 'use_revin': True,
@@ -227,8 +227,8 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         ),
         # 多模态 (Environment: 6变量+文本) — 启用概率输出
         'multimodal': ModelPreset(
-            d_model=512, n_heads=8, e_layers=2, d_ff=2048,
-            dropout=0.1, learning_rate=1e-4, batch_size=32,
+            d_model=512, n_heads=8, e_layers=1, d_ff=2048,
+            dropout=0.1, learning_rate=5e-5, batch_size=32,
             train_epochs=50, patience=10,
             extra={
                 'kan_grid_size': 5, 'use_cfd': True, 'use_revin': True,
@@ -249,28 +249,28 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,  # 不使用
             dropout=0.05, learning_rate=1e-3,  # 轻量模型用更高学习率
             batch_size=64, train_epochs=50, patience=10,
-            extra={'sparse_ratio': 4, 'group_size': 4, 'fft_residual_k': 2},
+            extra={'sparse_ratio': 2, 'group_size': 4, 'fft_residual_k': 2},
         ),
-        # 中维 (Weather: 21变量) — group_size=16
+        # 中维 (Weather: 21变量) — group_size=8
         'mid_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
             batch_size=64, train_epochs=30, patience=10,
-            extra={'sparse_ratio': 4, 'group_size': 8, 'fft_residual_k': 2},
+            extra={'sparse_ratio': 2, 'group_size': 8, 'fft_residual_k': 2},
         ),
         # 高维 (Electricity: 321变量) — 大group_size 捕获变量交互
         'high_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
             batch_size=64, train_epochs=30, patience=10,
-            extra={'sparse_ratio': 8, 'group_size': 16, 'fft_residual_k': 3},
+            extra={'sparse_ratio': 2, 'group_size': 16, 'fft_residual_k': 3},
         ),
         # 多模态 (Environment: 6变量)
         'multimodal': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
             batch_size=64, train_epochs=50, patience=10,
-            extra={'sparse_ratio': 4, 'group_size': 4, 'fft_residual_k': 2},
+            extra={'sparse_ratio': 2, 'group_size': 4, 'fft_residual_k': 2},
         ),
     },
 }
