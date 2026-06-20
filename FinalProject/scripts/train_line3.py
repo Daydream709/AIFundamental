@@ -41,6 +41,8 @@ from _common import (
     efficiency_rows_from,
     append_to_partial,
     print_summary,
+    detect_compute,
+    print_compute_banner,
 )
 
 setup_path()
@@ -70,8 +72,14 @@ TEXT_MODES = [
 
 
 def main():
+    compute = detect_compute()
+    print_compute_banner(compute)
+
     parser = argparse.ArgumentParser(description="Train Line 3: Multimodal Ablation")
-    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument(
+        "--epochs", type=int, default=100,
+        help="训练轮数 (默认 100; 在所有设备上保持一致, 仅 AMP 开关不同)",
+    )
     parser.add_argument("--gpu", type=int, default=0)
     args = parser.parse_args()
 
@@ -95,7 +103,8 @@ def main():
                                    on_complete=lambda res: append_to_partial(
                                        {**res, "line": 3, "text_mode": text_label},
                                        line=3,
-                                   ))
+                                   ),
+                                   compute=compute)
                 r["line"] = 3
                 r["text_mode"] = text_label
                 results.append(r)

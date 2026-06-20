@@ -100,7 +100,7 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         'mid_dim': ModelPreset(
             d_model=512, n_heads=4, e_layers=2, d_ff=2048,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
-            train_epochs=3, patience=10,
+            train_epochs=50, patience=10,
             extra={'patch_len': 16, 'stride': 8},
         ),
         # 高维数据集 (Electricity: 321变量)
@@ -108,14 +108,14 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         'high_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=2, d_ff=2048,
             dropout=0.1, learning_rate=1e-4, batch_size=16,  # 显存限制
-            train_epochs=3, patience=10,
+            train_epochs=50, patience=10,
             extra={'patch_len': 16, 'stride': 8},
         ),
         # 多模态 (Environment: 6变量+文本) — 参考低维配置
         'multimodal': ModelPreset(
             d_model=512, n_heads=8, e_layers=2, d_ff=2048,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
-            train_epochs=10, patience=10,
+            train_epochs=50, patience=10,
             extra={'patch_len': 16, 'stride': 8},
         ),
     },
@@ -139,14 +139,14 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         'mid_dim': ModelPreset(
             d_model=32, n_heads=8, e_layers=2, d_ff=32,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
-            train_epochs=10, patience=10,
+            train_epochs=50, patience=10,
             extra={'top_k': 5, 'num_kernels': 6},
         ),
         # 高维 (Electricity: 321变量) — 官方 d_model=256
         'high_dim': ModelPreset(
             d_model=256, n_heads=8, e_layers=2, d_ff=512,
             dropout=0.1, learning_rate=1e-4, batch_size=32,
-            train_epochs=30, patience=10,
+            train_epochs=50, patience=10,
             extra={'top_k': 5, 'num_kernels': 6},
         ),
         # 多模态 (Environment: 6变量) — 低维配置
@@ -183,7 +183,7 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         'default': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,  # 不使用
             dropout=0.0, learning_rate=1e-3,  # 极简模型可用更高学习率
-            batch_size=64, train_epochs=30, patience=5,
+            batch_size=64, train_epochs=50, patience=5,
             extra={'period_len': 12},
         ),
     },
@@ -209,7 +209,7 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         'mid_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.1, learning_rate=5e-5, batch_size=32,
-            train_epochs=30, patience=10,
+            train_epochs=50, patience=10,
             extra={
                 'kan_grid_size': 5, 'use_cfd': True, 'use_revin': True,
                 'use_probabilistic': True, 'top_k': 5,
@@ -219,7 +219,7 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         'high_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=1024,
             dropout=0.1, learning_rate=5e-5, batch_size=16,
-            train_epochs=30, patience=10,
+            train_epochs=50, patience=10,
             extra={
                 'kan_grid_size': 5, 'use_cfd': True, 'use_revin': True,
                 'use_probabilistic': True, 'top_k': 5,
@@ -255,14 +255,14 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
         'mid_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
-            batch_size=64, train_epochs=30, patience=10,
+            batch_size=64, train_epochs=50, patience=10,
             extra={'sparse_ratio': 2, 'group_size': 8, 'fft_residual_k': 2},
         ),
         # 高维 (Electricity: 321变量) — 大group_size 捕获变量交互
         'high_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
-            batch_size=64, train_epochs=30, patience=10,
+            batch_size=64, train_epochs=50, patience=10,
             extra={'sparse_ratio': 2, 'group_size': 16, 'fft_residual_k': 3},
         ),
         # 多模态 (Environment: 6变量)

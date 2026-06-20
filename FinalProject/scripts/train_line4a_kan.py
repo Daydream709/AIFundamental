@@ -40,6 +40,8 @@ from _common import (
     save_ablation_results,
     append_to_partial,
     print_summary,
+    detect_compute,
+    print_compute_banner,
 )
 
 setup_path()
@@ -65,8 +67,14 @@ KAN_GROUP_NAME = "KAN 5 Modules"  # 同步到 viz-frontend/src/data/lines.ts KAN
 
 
 def main():
+    compute = detect_compute()
+    print_compute_banner(compute)
+
     parser = argparse.ArgumentParser(description="Train Line 4a: KAN Ablation (v2.0)")
-    parser.add_argument("--epochs", type=int, default=30, help="消融训练轮数 (默认 30)")
+    parser.add_argument(
+        "--epochs", type=int, default=30,
+        help="消融训练轮数 (默认 30; 在所有设备上保持一致, 仅 AMP 开关不同)",
+    )
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument(
         "--pred_len",
@@ -95,7 +103,8 @@ def main():
                                on_complete=lambda res: append_to_partial(
                                    {**res, "ablation": KAN_GROUP_NAME, "setting": setting_label},
                                    ablation_prefix="kan",
-                               ))
+                               ),
+                               compute=compute)
             r["ablation"] = KAN_GROUP_NAME
             r["setting"] = setting_label
             results.append(r)

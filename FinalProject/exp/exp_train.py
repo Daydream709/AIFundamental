@@ -4,6 +4,7 @@
 """
 import os
 import time
+from typing import Optional
 import numpy as np
 import torch
 import torch.nn as nn
@@ -34,11 +35,29 @@ class ExpTrain(ExpBasic):
         self.use_probabilistic = getattr(config, 'use_probabilistic', False)
         # BF16 on CUDA Ampere+ (RTX 30/40/50): no GradScaler needed
         self._use_amp = config.use_amp and torch.cuda.is_available()
+        # Resolve autocast dtype from config.amp_dtype (set by detect_compute
+        # in scripts/_common.py). Falls back to bfloat16 on Ampere+ and
+        # float16 otherwise.
+        self._amp_dtype = self._resolve_amp_dtype(config)
         if self._use_amp:
-            print(f"  [AMP] BF16 mixed precision (no loss scaling needed)")
+            print(f"  [AMP] {self._amp_dtype} mixed precision (no loss scaling needed)")
         elif config.use_amp and not torch.cuda.is_available():
             config.use_amp = False
             print("  [AMP] CUDA not available, disabled")
+
+    @staticmethod
+    def _resolve_amp_dtype(config) -> Optional[torch.dtype]:
+        """Map config.amp_dtype (str | None) to a torch.dtype for autocast."""
+        name = getattr(config, "amp_dtype", None)
+        if name == "bfloat16":
+            return torch.bfloat16
+        if name == "float16":
+            return torch.float16
+        if name is None:
+            return None
+        # Unknown string — treat as "off" rather than crash
+        print(f"  [AMP] Unknown amp_dtype={name!r}, falling back to bfloat16")
+        return torch.bfloat16
 
     def _get_data(self, flag):
         return data_provider(self.config, flag)
@@ -110,7 +129,7 @@ class ExpTrain(ExpBasic):
 
             optimizer.zero_grad()
 
-            with autocast(self.device.type, enabled=self._use_amp):
+            with autocast(self.device.type, dtype=self._amp_dtype, enabled=self._use_amp):
                 pred, logvar = self._forward_pass(
                     self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
                 )
@@ -145,7 +164,7 @@ class ExpTrain(ExpBasic):
                 x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
                 true = x_y[:, -self.config.pred_len:, :]
 
-                with autocast(self.device.type, enabled=self._use_amp):
+                with autocast(self.device.type, dtype=self._amp_dtype, enabled=self._use_amp):
                     pred, logvar = self._forward_pass(
                         self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
                     )

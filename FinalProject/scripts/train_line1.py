@@ -35,6 +35,8 @@ from _common import (
     efficiency_rows_from,
     append_to_partial,
     print_summary,
+    detect_compute,
+    print_compute_banner,
 )
 
 setup_path()
@@ -51,8 +53,14 @@ SEQ_LEN = 96
 
 
 def main():
+    compute = detect_compute()
+    print_compute_banner(compute)
+
     parser = argparse.ArgumentParser(description="Train Line 1: Cross-Architecture Comparison")
-    parser.add_argument("--epochs", type=int, default=100, help="训练轮数 (默认 100)")
+    parser.add_argument(
+        "--epochs", type=int, default=100,
+        help="训练轮数 (默认 100; 在所有设备上保持一致, 仅 AMP 开关不同)",
+    )
     parser.add_argument("--gpu", type=int, default=0, help="GPU id (默认 0)")
     args = parser.parse_args()
 
@@ -74,7 +82,8 @@ def main():
                                    epochs=args.epochs, gpu=args.gpu,
                                    on_complete=lambda res: append_to_partial(
                                        {**res, "line": 1}, line=1
-                                   ))
+                                   ),
+                                   compute=compute)
                 r["line"] = 1
                 results.append(r)
 

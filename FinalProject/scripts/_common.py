@@ -31,14 +31,13 @@ from __future__ import annotations
 
 import os
 import sys
-import glob
-import json
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+import torch
 
 # Make project root importable
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -231,6 +230,145 @@ def save_efficiency(df: pd.DataFrame, line: Optional[int] = None,
 
 
 # ---------------------------------------------------------------------------
+# Compute resource detection (CUDA vs MPS) — AMP only
+# ---------------------------------------------------------------------------
+# 设计原则: 不同设备上, 训练参数 (batch_size / epochs / lr 等) 必须一致,
+# 唯一应该随设备变化的就是 AMP 是否开启 (MPS / CPU 没有 autocast, CUDA 用 BF16).
+# 这个模块只负责检测设备和决定 AMP 开关, 不会动 batch_size 或 epochs.
+def _classify_gpu_name(gpu_name: str) -> Dict[str, Any]:
+    """Map a raw CUDA device name to a short stable device_id + display name."""
+    name_lower = gpu_name.lower()
+    if "4090" in name_lower:
+        return {"device_id": "4090", "display_name": "RTX 4090"}
+    if "4080" in name_lower:
+        return {"device_id": "4080", "display_name": "RTX 4080"}
+    if "3090" in name_lower:
+        return {"device_id": "3090", "display_name": "RTX 3090"}
+    if "a100" in name_lower:
+        return {"device_id": "a100", "display_name": "A100"}
+    if "h100" in name_lower:
+        return {"device_id": "h100", "display_name": "H100"}
+    return {"device_id": "cuda-unknown", "display_name": gpu_name}
+
+
+def _classify_mps_name() -> Dict[str, Any]:
+    """Apple Silicon classifier. Reads chip name from sysctl."""
+    try:
+        import subprocess
+        chip = subprocess.run(
+            ["sysctl", "-n", "machdep.cpu.brand_string"],
+            capture_output=True, text=True, timeout=2,
+        ).stdout.strip() or "Apple Silicon"
+    except Exception:
+        chip = "Apple Silicon"
+
+    chip_lower = chip.lower()
+    if "m5" in chip_lower:
+        return {"device_id": "m5", "display_name": "Apple M5"}
+    if "m4" in chip_lower:
+        return {"device_id": "m4", "display_name": "Apple M4"}
+    if "m3" in chip_lower:
+        return {"device_id": "m3", "display_name": "Apple M3"}
+    if "m2" in chip_lower:
+        return {"device_id": "m2", "display_name": "Apple M2"}
+    if "m1" in chip_lower:
+        return {"device_id": "m1", "display_name": "Apple M1"}
+    return {"device_id": "mps-unknown", "display_name": chip}
+
+
+def detect_compute() -> dict:
+    """
+    Detect the available compute resource and return its AMP setting.
+
+    The dict only exposes fields that are actually device-dependent:
+
+      - 'backend':    'cuda' | 'mps' | 'cpu'
+      - 'device_str': human-friendly description (e.g. "CUDA (RTX 4090)")
+      - 'device_id':  short stable id ('4090' | 'm5' | 'cpu' | ...)
+      - 'use_amp':    bool — ONLY this (and amp_dtype) is device-dependent
+      - 'amp_dtype':  'bfloat16' | 'float16' | None (None = no AMP)
+
+    Training parameters (batch_size, epochs, lr, ...) are intentionally NOT
+    part of this dict — they must stay the same on every device.
+
+    Detection priority: CUDA > MPS > CPU.
+    """
+    if torch.cuda.is_available():
+        try:
+            gpu_name = torch.cuda.get_device_name(0)
+        except Exception:
+            gpu_name = "NVIDIA GPU"
+        profile = _classify_gpu_name(gpu_name)
+        bf16_supported = torch.cuda.is_bf16_supported()
+        return {
+            "backend": "cuda",
+            "device_str": f"CUDA ({profile['display_name']})",
+            "device_id": profile["device_id"],
+            "use_amp": True,
+            "amp_dtype": "bfloat16" if bf16_supported else "float16",
+        }
+    if torch.backends.mps.is_available():
+        profile = _classify_mps_name()
+        return {
+            "backend": "mps",
+            "device_str": f"MPS ({profile['display_name']})",
+            "device_id": profile["device_id"],
+            "use_amp": False,
+            "amp_dtype": None,  # MPS has no autocast
+        }
+    return {
+        "backend": "cpu",
+        "device_str": "CPU (no GPU detected)",
+        "device_id": "cpu",
+        "use_amp": False,
+        "amp_dtype": None,
+    }
+
+
+def apply_compute_to_config(config: Any, compute: dict) -> None:
+    """
+    Set device-specific AMP flags on the exp config. Does NOT touch
+    batch_size / epochs / lr — those must stay identical on every device.
+    """
+    config.use_amp = bool(compute["use_amp"])
+    config.amp_dtype = compute["amp_dtype"]
+    config.device_id = compute["device_id"]
+
+
+def apply_compute_defaults(args, compute: dict):
+    """
+    Best-effort safety net for argparse args (dict or Namespace). The
+    exp_train path is the real consumer of compute['use_amp']; this helper
+    exists so any CLI-level code that wants to read use_amp from argparse
+    without going through the exp config still gets the device-correct value.
+    """
+    def _get(key, default=None):
+        if isinstance(args, dict):
+            return args.get(key, default)
+        return getattr(args, key, default)
+
+    def _set(key, value):
+        if isinstance(args, dict):
+            args[key] = value
+        else:
+            setattr(args, key, value)
+
+    if _get("use_amp") is None:
+        _set("use_amp", compute["use_amp"])
+    return args
+
+
+def print_compute_banner(compute: dict) -> None:
+    """Print a one-line banner showing the detected compute resource + AMP setting."""
+    print()
+    print("─" * 64)
+    print(f"  💻 Compute: {compute['device_str']}  [device_id={compute['device_id']}]")
+    print(f"  ⚙️  AMP: {'ON (' + compute['amp_dtype'] + ')' if compute['use_amp'] else 'OFF (FP32 only)'}")
+    print("─" * 64)
+    print()
+
+
+# ---------------------------------------------------------------------------
 # Single experiment runner
 # ---------------------------------------------------------------------------
 def run_experiment(
@@ -242,6 +380,7 @@ def run_experiment(
     epochs: int = 100,
     gpu: int = 0,
     on_complete: Optional[Any] = None,
+    compute: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Run one experiment, return result dict (lowercase metric keys from exp.train).
 
@@ -250,6 +389,11 @@ def run_experiment(
     If `on_complete(result)` is provided, it's called after each experiment
     (success or failure) BEFORE the function returns — used for real-time
     partial-CSV saving. The callback should not raise.
+
+    If `compute` is provided (the dict returned by detect_compute()), its
+    settings (use_amp / amp_dtype / batch_size multiplier / device_id) are
+    applied to the per-experiment config BEFORE the model is built. If
+    compute is None, the config keeps whatever the dataset+model presets set.
     """
     from configs.dataset_configs import get_dataset_config  # noqa: E402
     from exp.exp_train import ExpTrain  # noqa: E402
@@ -266,6 +410,10 @@ def run_experiment(
     config.gpu = gpu
     config.checkpoints = "./checkpoints/"
     os.makedirs(config.checkpoints, exist_ok=True)
+
+    # Apply per-compute overrides (use_amp / amp_dtype / batch_size / device_id)
+    if compute is not None:
+        apply_compute_to_config(config, compute)
 
     # Apply extra config flags (use_text, text_mode, use_cfd, etc.)
     if extra_config:
@@ -342,7 +490,20 @@ def print_summary(results: List[Dict[str, Any]], line_label: str) -> None:
 # Entry point helper
 # ---------------------------------------------------------------------------
 def setup_path() -> None:
-    """Add project root + thuml library to sys.path."""
-    for p in (str(PROJECT_ROOT), str(PROJECT_ROOT / "third_party" / "TimeSeriesLibrary")):
-        if p not in sys.path:
-            sys.path.insert(0, p)
+    """Add project root + thuml library to sys.path.
+
+    ORDER MATTERS: project root MUST come before third_party/TimeSeriesLibrary.
+    TSL ships its own `exp/` package (exp_basic.py, exp_long_term_forecasting.py,
+    ...), and if TSL is in front of our project root, Python will pick TSL's
+    `exp/` and our `from exp.exp_train import ExpTrain` will fail with
+    "No module named 'exp.exp_train'".
+    """
+    project_root = str(PROJECT_ROOT)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    tsl_root = str(PROJECT_ROOT / "third_party" / "TimeSeriesLibrary")
+    if tsl_root not in sys.path:
+        # Append (not insert) so it goes AFTER the project root, letting our
+        # `exp/` win name resolution. TSL's models are still importable when
+        # explicitly requested.
+        sys.path.append(tsl_root)
