@@ -16,8 +16,9 @@ import type { ExperimentLine } from "@/types/filters";
 export const KAN_ABLATION_GROUPS = ["KAN 5 Modules"];
 
 /** Ablation groups relevant to the Lite-SparseNet (lightweight) study.
- *  Must match the `ablation` column values produced by scripts/train_line4b_lite.py. */
-export const LITE_ABLATION_GROUPS = ["Lite 3 Stages"];
+ *  Must match the `ablation` column values produced by scripts/train_line4b_lite.py.
+ *  v2.1: changed from "Lite 3 Stages" (FFT-based) to "Lite Residual" (LinearResidual). */
+export const LITE_ABLATION_GROUPS = ["Lite Residual"];
 
 export const LINES: Record<number, ExperimentLine> = {
   1: {

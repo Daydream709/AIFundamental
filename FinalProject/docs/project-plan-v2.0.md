@@ -3,6 +3,27 @@
 **项目名称**：多变量长周期时间序列预测系统：架构对比、自研高性能模型与轻量化探索
 
 
+## v2.1 更新说明（2026-06-20）
+
+v2.1 是基于 v2.0 消融结果的一次针对性修正。原 v2.0 的 Lite-SparseNet 第三阶段用 FFT 频域残差修正，消融发现该模块在所有 3 个测试数据集上**净负贡献**（B2 关闭 FFT 后 MSE 平均下降 50-67%）。同时 v2.0 消融存在一个长期 bug：`_apply_model_preset` 会把 ablation 显式设的 key（比如 B1 的 `group_size=16`，恰好等于 BaseConfig 默认值）静默回滚成 preset 值，导致 B1 跟 B0 结果完全一样。
+
+v2.1 主要变更：
+
+1. **LinearResidual 替代 FFT 修正**（`models/LiteSparseNet.py`）
+   - 共享下投影 `down_len → latent_dim` + 通道独享上投影 `latent_dim → pred_len` + 通道独享可学习 gate（sigmoid 初始化 ≈ 0.12）
+   - 让网络自己学"该不该修"，无效通道的 gate 会被训到 0
+   - `residual_latent_dim=0` 直接关掉整个模块（0 参数、0 计算）
+   - 参数量：ETTm2（7 变量，latent=4）≈ 3K；Electricity（321 变量）≈ 125K
+2. **B1 覆盖 bug 修复**（`exp/exp_basic.py` + `scripts/_common.py`）
+   - `run_experiment` 标记所有显式 set 的 key 到 `config._user_set_keys`
+   - `_apply_model_preset` 跳过这些 key，无论它们的值是否等于 BaseConfig 默认值
+3. **消融脚本重构**（`scripts/train_line4b_lite.py`）
+   - 旧三档「减弱阶段二/三」改成新三档「B0 完整 / B1 窄瓶颈 / B2 关闭」，全部围绕新残差模块
+   - LITE_ABLATION_GROUPS 同步改成 `"Lite Residual"`（`viz-frontend/src/data/lines.ts`）
+
+详细设计说明见 [v2.1 设计笔记](#v21-设计笔记线性残差替代-fft) 一节（追加在本文件末尾）。
+
+
 ## 一、研究问题与核心目标
 
 本项目旨在回答四个层面的核心问题：
@@ -135,22 +156,30 @@
 
 #### 消融 4b：Lite-SparseNet 3 阶段设计的贡献度
 
+> **v2.1 更新**：阶段三的 FFT 残差修正被 `LinearResidual`（可学习线性残差 + 通道独享 gate）取代，消融三档也改为围绕新残差模块设计。详见文件开头的「v2.1 更新说明」和文末的「v2.1 设计笔记」。下面的表格保留 v2.0 设计作为历史记录。
+
 - **基线（B0）**：完整 Lite-SparseNet（3 阶段全开, ~0.018M）
-- **消融组**（B0 + B1-B2，通过减弱对应阶段参数）：
+- **v2.0 消融组**（B0 + B1-B2，通过减弱对应阶段参数）：
 
-| 消融组 | 减弱参数 | 验证重点 |
-|--------|----------|----------|
-| **B0 · 完整版** | 无 | 基准 (~0.018M) |
-| **B1** | 减弱阶段二 (group_size 4 → 16) | 变量间交互对精度的影响 |
-| **B2** | 减弱阶段三 (fft_residual_k 2 → 0) | FFT 残差对细节修正的贡献 |
+| 消融组 | 减弱参数 | 验证重点 | v2.0 实测结论 |
+|--------|----------|----------|---------------|
+| **B0 · 完整版** | 无 | 基准 (~0.018M) | — |
+| **B1** | 减弱阶段二 (group_size 4 → 16) | 变量间交互对精度的影响 | 与 B0 几乎相同 — `_apply_model_preset` bug 把 ablation 静默回滚了，v2.1 修复 |
+| **B2** | 减弱阶段三 (fft_residual_k 2 → 0) | FFT 残差对细节修正的贡献 | **MSE 反而下降 50-67%** — 说明 FFT 是净负贡献，被 LinearResidual 取代 |
 
-> **注**：v2.0 Lite 没有"完全关闭某阶段"的开关（这是 v2.1 Lite-RevIN/共享权重的变体），
-> 所以消融采用"减弱该阶段参数"代替"完全关闭"。v2.0 架构下三个阶段都是必需的。
-- **核心分析问题**：
-  1. 阶段二（分组 MLP）在 6 维 vs 321 维上的贡献差异（变量越多，交互越重要）
-  2. 阶段三（FFT 残差）是否真的"零参数"却"有效果"
-  3. B0（完整 Lite）vs SparseTSF 直接对比 — 自研是否真比基线强
-- **输出**：3 阶段消融表 + 与 SparseTSF 的关键对比图。
+- **v2.1 新消融组**（`scripts/train_line4b_lite.py`，`LITE_ABLATION_GROUPS = "Lite Residual"`）：
+
+| 消融组 | 残差模块设置 | 验证重点 |
+|--------|--------------|----------|
+| **B0 · 完整** | `residual_latent_dim=4` (默认) | 共享下投影 + 通道独享上投影 + 通道独享 gate 协同效应 |
+| **B1 · 窄瓶颈** | `residual_latent_dim=1` | 残差模块表达力受限时表现 |
+| **B2 · 关闭** | `residual_latent_dim=0` | 完全退化为纯 trend 预测 — 新基线 |
+
+- **核心分析问题**（v2.1 视角）：
+  1. LinearResidual 相对纯 trend 预测（B0 vs B2）的真实增益
+  2. 瓶颈宽度（4 vs 1）对残差质量的影响
+  3. gate 训出来接近 0 的通道占比 — 验证"残差自选通道"的设计是否成立
+- **输出**：3 档消融表 + 新增「gate 收敛分布」分析图。
 - **总实验数**：3 设置 × 3 数据集 × 1 pred_len = **9 次**
 
 #### 消融 4 与统计检验
@@ -206,3 +235,97 @@
 | 可视化与报告 | 图表绘制 + Gradio Demo + 实验报告（Word转PDF）+ PPT | 3-4天 |
 
 **总预估**：14-18天（全职投入），建议优先保证主线二和主线三的完整执行。
+
+
+---
+
+## v2.1 设计笔记：线性残差替代 FFT
+
+### 背景
+
+v2.0 的 Lite-SparseNet 第三阶段是 FFT 频域残差修正：对输入序列做 `rfft` → 取 top-k 主频 → 加一个 0.1× 振幅的正弦波到预测上。设计假设是「捕捉输入序列的主频分量来修正趋势预测的细节误差」。
+
+v2.0 消融（B2 把 `fft_residual_k` 从 2 改成 0）结果：
+
+| 数据集 | B0 (with FFT) | B2 (no FFT) | Δ |
+|---|---|---|---|
+| ETTm2 | MSE 0.218 | **MSE 0.114** | -48% |
+| Electricity | MSE 0.716 | **MSE 0.235** | -67% |
+| Environment | MSE 0.972 | **MSE 0.369** | -62% |
+
+**所有数据集上，关闭 FFT 反而显著改善**。三个根因：
+
+1. **零参数陷阱** — FFT 没有可学习参数，模型无法学"这个序列不需要修正"。即使某通道的残差是无意义的噪声，也无法关掉。
+2. **top-k 频率对噪声敏感** — 在 ETTm2/Electricity 这类带噪的工业时序上，幅度最大的频率往往是噪声而非信号。修正时往预测里加了一段与真实趋势无关的正弦波。
+3. **`0.1` 振幅缩放是手设超参** — 不同数据集的"残差能量"差异极大，单一缩放因子顾此失彼。
+
+### v2.1 方案：LinearResidual
+
+`models/LiteSparseNet.py` 里的新 `LinearResidual` 类。三层结构：
+
+```
+x_enc (B, H, C)
+  │  (与 stage 1 共享同一组下采样索引)
+  ▼
+x_down (B, down_len, C)                          ← 输入压缩
+  │  shared Linear (down_len → latent_dim)
+  ▼
+x_latent (B, C, latent_dim)                      ← 共享特征基底
+  │  per-channel Linear (latent_dim → pred_len)  ← 通道独享细化
+  ▼
+correction (B, pred_len, C)
+  │  × sigmoid(gate_c)  ← 通道独享可学习开关
+  ▼
+pred + correction                                ← 输出
+```
+
+**关键设计点**：
+
+- **共享下投影**：所有通道共用一个 `Linear(down_len → latent_dim)`，捕获跨通道共有的"宏观残差"模式（季节性、长期趋势偏差等）。参数量与 `n_vars` 无关。
+- **通道独享上投影**：`Linear(latent_dim → pred_len)`，每个通道学自己的细节修正形状。`latent_dim` 是瓶颈，控制参数量。
+- **可学习 gate**：`sigmoid(gate_c)` 初始化为 `sigmoid(-2) ≈ 0.12`，模型需要主动训练才能让 gate 接近 1。当某通道的残差无意义时，gate 会被训到接近 0 — 模块对该通道"自动透明"。
+- **`latent_dim=0` 短路**：模块在 `__init__` 时直接走 `enabled=False` 分支，0 参数、0 计算、完全退化为纯 trend 预测。这是 B2 ablation 用的状态。
+
+**参数量**：
+
+| 数据集 | n_vars | latent_dim=4 | latent_dim=1 | latent_dim=0 |
+|---|---|---|---|---|
+| ETTm2 (H=96, F=96) | 7 | ~3.4K | ~1.0K | 0 |
+| Electricity | 321 | ~125K | ~33K | 0 |
+| Environment | 6 | ~3.0K | ~0.9K | 0 |
+
+注意 Electricity 上的 ~125K 是相对其 1.5M 总参数的 8%，可控。
+
+### 同步修复的 ablation 框架 bug
+
+v2.0 消融里 B1 跟 B0 数值完全一样（任何数据集都是），根因是 `_apply_model_preset` 的覆盖逻辑：
+
+```python
+# 旧逻辑: 只在 current == default 时才覆盖
+if current == default or current is None:
+    setattr(self.config, key, value)  # 覆盖!
+```
+
+B1 设 `group_size=16`（即 BaseConfig 默认值），触发 `current == default` 分支，preset 把 `group_size` 静默改回 4。**用户显式设的 key 被默默回滚**。
+
+**修复**（`exp/exp_basic.py` + `scripts/_common.py`）：
+
+- `run_experiment` 维护 `user_set = {model, train_epochs, gpu, ...}`，包含所有它显式 set 的 key（CLI 参数 + `compute` 注入的 + `extra_config` 注入的）
+- 设到 `config._user_set_keys`
+- `_apply_model_preset` 在迭代 preset 前先跳过 `user_set` 里的 key：
+
+```python
+user_set = getattr(self.config, '_user_set_keys', set())
+for key, value in preset.items():
+    if key in user_set:
+        skipped.append(f'{key}={...}(user-set)')
+        continue
+    # ... 原有 current == default 检查 ...
+```
+
+不影响其它用户（直接 `ExpBasic(cfg)` 的人 `_user_set_keys` 不存在，走原逻辑）。
+
+### 验证
+
+- 单元测试：forward shape 正确 (B, F, C)；B0/B1/B2 三档参数量符合预期；B1 bug 修复后 `group_size=16` 不再被回滚
+- 完整 line 4b 9 run 复跑：见 `results/ablation_lite_latest.csv`
