@@ -1,13 +1,13 @@
 """
 统一训练/验证/测试循环 — FinalProject v2.0
-支持: 混合精度(AMP)、早停(EarlyStopping)、概率输出(GaussianNLL)
+支持: BF16 混合精度 (CUDA Ada/Ampere native)、早停(EarlyStopping)、概率输出(GaussianNLL)
 """
 import os
 import time
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.amp import autocast, GradScaler
+from torch.amp import autocast
 from tqdm import tqdm
 from exp.exp_basic import ExpBasic
 from data_provider.data_factory import data_provider
@@ -20,13 +20,19 @@ from utils.efficiency import (
 
 
 class ExpTrain(ExpBasic):
-    """完整的训练/验证/测试流程 — v2.0"""
+    """完整的训练/验证/测试流程 — v2.0 (BF16)"""
 
     def __init__(self, config):
         super().__init__(config)
-        self.scaler = GradScaler('cuda', enabled=config.use_amp)
         self.logger = ResultLogger()
         self.use_probabilistic = getattr(config, 'use_probabilistic', False)
+        # BF16 on CUDA Ampere+ (RTX 30/40/50): no GradScaler needed
+        self._use_amp = config.use_amp and torch.cuda.is_available()
+        if self._use_amp:
+            print(f"  [AMP] BF16 mixed precision (no loss scaling needed)")
+        elif config.use_amp and not torch.cuda.is_available():
+            config.use_amp = False
+            print("  [AMP] CUDA not available, disabled")
 
     def _get_data(self, flag):
         return data_provider(self.config, flag)
@@ -98,7 +104,7 @@ class ExpTrain(ExpBasic):
 
             optimizer.zero_grad()
 
-            with autocast('cuda', enabled=self.config.use_amp):
+            with autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self._use_amp):
                 pred, logvar = self._forward_pass(
                     self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
                 )
@@ -110,9 +116,9 @@ class ExpTrain(ExpBasic):
                 else:
                     loss = criterion(pred, true)
 
-            self.scaler.scale(loss).backward()
-            self.scaler.step(optimizer)
-            self.scaler.update()
+            # BF16: no GradScaler needed
+            loss.backward()
+            optimizer.step()
 
             total_loss += loss.item()
             n_batches += 1
@@ -133,7 +139,7 @@ class ExpTrain(ExpBasic):
                 x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
                 true = x_y[:, -self.config.pred_len:, :]
 
-                with autocast('cuda', enabled=self.config.use_amp):
+                with autocast(device_type='cuda', dtype=torch.bfloat16, enabled=self._use_amp):
                     pred, logvar = self._forward_pass(
                         self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
                     )
