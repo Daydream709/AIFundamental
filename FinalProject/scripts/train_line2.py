@@ -42,16 +42,12 @@ setup_path()
 
 
 # Configuration (matches viz-frontend/src/data/lines.ts LINES[2])
+# 只跑 3 个自研 + 外部轻量标杆 — 4 个 thuml 基线 (DLinear/PatchTST/TimesNet/Mamba)
+# 的结果直接从 Line 1 的 line1_latest.csv 复用（viz 端负责跨线合并）
 MODELS = [
-    # 自研
     "KANiTransformer",
     "LiteSparseNet",
-    "SparseTSF",
-    # 参考 (thuml 官方基线)
-    "DLinear",
-    "PatchTST",
-    "TimesNet",
-    "Mamba",
+    "SparseTSF", # 轻量级外部基线，作为自研模型的对比参考
 ]
 DATASETS = ["ETTm2", "Weather", "Electricity"]
 PRED_LENS = [96, 192, 336, 720]
