@@ -1,0 +1,10 @@
+MSE,MAE,RMSE,MAPE,SMAPE,Params(M),FLOPs(G),InferTime(ms),GPUMem(MB),status,model,dataset,seq_len,pred_len,label,ablation,setting
+0.11299032,0.23845504,0.33614033,169.87788,65.67767,0.036783,0.00389543,0.3366851806640625,0.0,success,LiteSparseNet,ETTm2,96,96,B0 - 完整 (residual_latent_dim=4),Lite Residual,B0 - 完整 (residual_latent_dim=4)
+0.23664717,0.3207921,0.48646396,236.43828,60.25597,1.686021,0.058080392,2.8470993041992188,0.0,success,LiteSparseNet,Electricity,96,96,B0 - 完整 (residual_latent_dim=4),Lite Residual,B0 - 完整 (residual_latent_dim=4)
+0.37129205,0.430364,0.6093374,133.64342,81.71247,0.031598,0.003563542,0.34188270568847656,0.0,success,LiteSparseNet,Environment,96,96,B0 - 完整 (residual_latent_dim=4),Lite Residual,B0 - 完整 (residual_latent_dim=4)
+0.11533063,0.24048468,0.33960363,173.60265,65.42129,0.03462,0.003701878,0.3807353973388672,0.0,success,LiteSparseNet,ETTm2,96,96,B1 - 窄瓶颈 (residual_latent_dim=1),Lite Residual,B1 - 窄瓶颈 (residual_latent_dim=1)
+0.2343812,0.32005972,0.4841293,234.67569,60.389137,1.593426,0.055861858,2.9531431198120117,0.0,success,LiteSparseNet,Electricity,96,96,B1 - 窄瓶颈 (residual_latent_dim=1),Lite Residual,B1 - 窄瓶颈 (residual_latent_dim=1)
+0.3634927,0.42698914,0.60290354,131.47151,80.91186,0.029723,0.003397661,0.3390026092529297,0.0,success,LiteSparseNet,Environment,96,96,B1 - 窄瓶颈 (residual_latent_dim=1),Lite Residual,B1 - 窄瓶颈 (residual_latent_dim=1)
+0.11367305,0.23819676,0.33715436,172.03824,65.37938,0.03322,0.003637364,0.3029823303222656,0.0,success,LiteSparseNet,ETTm2,96,96,B2 - 关闭残差 (residual_latent_dim=0),Lite Residual,B2 - 关闭残差 (residual_latent_dim=0)
+0.2347269,0.32004896,0.48448622,236.39243,60.280056,1.531424,0.05512228,2.7222442626953125,0.0,success,LiteSparseNet,Electricity,96,96,B2 - 关闭残差 (residual_latent_dim=0),Lite Residual,B2 - 关闭残差 (residual_latent_dim=0)
+0.36864728,0.42938194,0.6071633,140.07805,81.19848,0.028516,0.003342364,0.2222585678100586,0.0,success,LiteSparseNet,Environment,96,96,B2 - 关闭残差 (residual_latent_dim=0),Lite Residual,B2 - 关闭残差 (residual_latent_dim=0)
