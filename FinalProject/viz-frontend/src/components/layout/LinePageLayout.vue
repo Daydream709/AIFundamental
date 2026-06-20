@@ -208,7 +208,13 @@ const rawData = computed<AnyResultRow[]>(() => {
     return dataStore.liteAblation as AnyResultRow[];
   }
   if (props.line.number === 1) return dataStore.line1Merged as AnyResultRow[];
-  if (props.line.number === 2) return dataStore.line2Merged as AnyResultRow[];
+  if (props.line.number === 2) {
+    // Line 2 only trains the 3 self-dev models. The 4 thuml baselines
+    // (DLinear/PatchTST/TimesNet/Mamba) come from Line 1's data — we
+    // re-use them here so viz shows a complete 7-model comparison.
+    const line1 = dataStore.line1Merged as AnyResultRow[];
+    return [...dataStore.line2Merged, ...line1] as AnyResultRow[];
+  }
   if (props.line.number === 3) return dataStore.line3Merged as AnyResultRow[];
   return [];
 });
