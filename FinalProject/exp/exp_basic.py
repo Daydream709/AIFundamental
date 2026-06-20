@@ -70,8 +70,14 @@ class ExpBasic:
             print(f'  [Preset] Skipped: {e}')
 
     def _acquire_device(self):
-        if self.config.use_gpu and torch.cuda.is_available():
-            return torch.device(f'cuda:{self.config.gpu}')
+        # Priority: CUDA (NVIDIA) > MPS (Apple Silicon) > CPU
+        if self.config.use_gpu:
+            if torch.cuda.is_available():
+                return torch.device(f'cuda:{self.config.gpu}')
+            if torch.backends.mps.is_available():
+                print("  [Device] MPS (Apple Silicon GPU)")
+                return torch.device('mps')
+        print("  [Device] CPU")
         return torch.device('cpu')
 
     def _build_model(self):

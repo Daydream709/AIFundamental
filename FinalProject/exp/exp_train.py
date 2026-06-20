@@ -24,7 +24,13 @@ class ExpTrain(ExpBasic):
 
     def __init__(self, config):
         super().__init__(config)
-        self.scaler = GradScaler('cuda', enabled=config.use_amp)
+        # MPS: GradScaler 和 autocast 不可用，关闭混合精度
+        self._is_mps = self.device.type == 'mps'
+        if self._is_mps or not torch.cuda.is_available():
+            self.scaler = GradScaler(device='cpu', enabled=False)
+            config.use_amp = False
+        else:
+            self.scaler = GradScaler(device='cuda', enabled=config.use_amp)
         self.logger = ResultLogger()
         self.use_probabilistic = getattr(config, 'use_probabilistic', False)
 
@@ -98,7 +104,7 @@ class ExpTrain(ExpBasic):
 
             optimizer.zero_grad()
 
-            with autocast('cuda', enabled=self.config.use_amp):
+            with autocast(self.device.type, enabled=self.config.use_amp):
                 pred, logvar = self._forward_pass(
                     self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
                 )
@@ -133,7 +139,7 @@ class ExpTrain(ExpBasic):
                 x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
                 true = x_y[:, -self.config.pred_len:, :]
 
-                with autocast('cuda', enabled=self.config.use_amp):
+                with autocast(self.device.type, enabled=self.config.use_amp):
                     pred, logvar = self._forward_pass(
                         self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
                     )
@@ -180,7 +186,9 @@ class ExpTrain(ExpBasic):
 
         # 收集效率指标 (参数量 / FLOPs / 推理时间 / GPU 显存)
         n_params, _ = count_parameters(self.model)
-        device_str = 'cuda' if (self.config.use_gpu and torch.cuda.is_available()) else 'cpu'
+        device_str = ('cuda' if torch.cuda.is_available()
+                      else 'mps' if torch.backends.mps.is_available()
+                      else 'cpu')
         input_shape = (self.config.batch_size, self.config.seq_len, self.config.enc_in)
         flops_g = measure_flops(self.model, input_shape, device=device_str,
                                  freq=self.config.freq)

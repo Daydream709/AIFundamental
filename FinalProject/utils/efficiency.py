@@ -1,9 +1,11 @@
 """
 效率统计工具 — 参数量 / FLOPs / 推理时间 / GPU显存
+支持: CUDA / MPS (Apple Silicon) / CPU
 """
 import torch
 import time
 import numpy as np
+from torch.amp import autocast
 
 
 def count_parameters(model):
@@ -86,7 +88,7 @@ def measure_inference_time(model, input_shape, device='cuda', n_runs=100, use_am
     # Warmup
     with torch.no_grad():
         for _ in range(10):
-            with torch.cuda.amp.autocast(enabled=use_amp):
+            with autocast(device, enabled=use_amp):
                 _ = model(x_enc, x_mark, x_dec, x_mark_dec)
 
     # 测量
@@ -98,7 +100,7 @@ def measure_inference_time(model, input_shape, device='cuda', n_runs=100, use_am
         start.record()
         with torch.no_grad():
             for _ in range(n_runs):
-                with torch.cuda.amp.autocast(enabled=use_amp):
+                with autocast(device, enabled=use_amp):
                     _ = model(x_enc, x_mark, x_dec, x_mark_dec)
         end.record()
         torch.cuda.synchronize()
@@ -107,15 +109,17 @@ def measure_inference_time(model, input_shape, device='cuda', n_runs=100, use_am
         t0 = time.time()
         with torch.no_grad():
             for _ in range(n_runs):
-                _ = model(x_enc, x_mark, x_dec, x_mark_dec)
+                with autocast(device, enabled=use_amp):
+                    _ = model(x_enc, x_mark, x_dec, x_mark_dec)
         elapsed = (time.time() - t0) * 1000 / n_runs  # ms
 
     return elapsed
 
 
 def measure_gpu_memory(model, input_shape, device='cuda', freq='h'):
-    """测量 GPU 显存占用 (单位: MB)"""
-    if device != 'cuda' or not torch.cuda.is_available():
+    """测量 GPU 显存占用 (单位: MB)
+    MPS (Apple Silicon) 不支持显存查询, 返回 0.0."""
+    if device not in ('cuda',) or not torch.cuda.is_available():
         return 0.0
 
     freq_map = {'h': 4, 't': 5, 's': 6, 'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3}
