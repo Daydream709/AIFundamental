@@ -35,6 +35,11 @@ class ExpBasic:
           - 用户在 CLI 中指定的参数 (--lr 5e-4) 不会被覆盖 ✓
           - 数据集配置中的硬约束 (如 Electricity batch_size=16) 会被保留 ✓
           - 架构参数 (d_model, d_ff, e_layers 等) 会被模型预设覆盖 ✓
+
+        补充: run_experiment() 会把通过 CLI / extra_config 显式设过的 key
+        写进 config._user_set_keys. 这些 key 永远不会被 preset 覆盖,
+        即便它们的值碰巧等于 BaseConfig 默认值 (例如 B1 把 group_size 设
+        回默认 16, 原本会被 preset 静默回滚成 low_dim 档的 4).
         """
         model_name = getattr(self.config, 'model', 'DLinear')
         dataset_name = getattr(self.config, 'data', 'ETTm2')
@@ -48,7 +53,13 @@ class ExpBasic:
 
             applied = []
             skipped = []
+            # Keys the caller (run_experiment) flagged as explicitly set.
+            # These must never be overridden by the preset.
+            user_set = getattr(self.config, '_user_set_keys', set())
             for key, value in preset.items():
+                if key in user_set:
+                    skipped.append(f'{key}={getattr(self.config, key, None)}(user-set)')
+                    continue
                 current = getattr(self.config, key, None)
                 default = getattr(default_config, key, None)
 

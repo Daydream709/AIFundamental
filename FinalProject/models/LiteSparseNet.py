@@ -1,16 +1,18 @@
 """
 Lite-SparseNet — 核心贡献2: 冲刺效率极限
-参数量 < 0.05M (~50K)
+参数量 < 0.05M (~50K) [在 ETTm2 等低维数据上; 高维数据随变量数线性增长]
 
 三阶段设计:
-  阶段一: 稀疏趋势提取 — 跨周期下采样，压缩 H→H/p，捕获宏观趋势
-  阶段二: 轻量变量间交互 — 分组轻量MLP，仅在组内进行信息交互
-  阶段三: 频域残差修正 — 单层FFT捕捉1-2个主频分量，修正细节误差
+  阶段一: 稀疏趋势提取 — 跨周期下采样, 压缩 H→H/p, 捕获宏观趋势
+  阶段二: 轻量变量间交互 — 分组轻量 MLP, 仅在组内进行信息交互
+  阶段三: 可学习残差修正 — 共享投影 + 通道独享 bottleneck + 通道独享 gate,
+           替代 v2.0 的 FFT 频域修正 (后者在消融实验里被证实为负贡献).
 
-创新点:
-  1. 针对 SparseTSF 忽略多变量关联的缺陷，引入分组交互
-  2. FFT残差以 O(H log H) 复杂度实现几乎零参数的细节修正
-  3. 参数量 < 0.05M，远超 SparseTSF 精度，逼近大模型
+创新点 (v2.1):
+  1. 针对 SparseTSF 忽略多变量关联的缺陷, 引入分组交互
+  2. 残差模块用 shared basis + per-channel bottleneck 替代 FFT —
+     参数量可控, 由 gate 自动学习是否启用修正
+  3. 参数量 < 0.05M (低维), 远超 SparseTSF 精度, 逼近大模型
 """
 import math
 import torch
@@ -82,59 +84,104 @@ class GroupLightMLP(nn.Module):
         return out
 
 
-class FFTCorrection(nn.Module):
+class LinearResidual(nn.Module):
     """
-    频域残差修正 — 向量化版本
+    可学习残差修正 — 替代 v2.0 的 FFTCorrection
 
-    原版在 (B, C, K) 三重 Python 循环里逐个调 `.item()` 取 freq_idx,
-    每次都强制 CPU/GPU 同步, 在 MPS 上单次 forward 触发 896 次 sync
-    (B=64, C=7, K=2), 单 epoch 因此被拖到分钟级.
+    原 v2.0 用 FFT 找输入序列的 top-k 主频, 加一个 0.1×振幅的正弦波到预测上.
+    这个设计有 3 个问题:
+      1. 完全无参数, 模型无法学会"这个序列不需要修正"
+      2. 主频选取用的是全序列 FFT, 对噪声敏感, 容易选中噪声频率
+      3. 振幅缩放 0.1 是手设超参, 不同数据集的最佳值差异大
+    消融 (B2 vs B0) 显示 v2.0 的 FFT 修正让 MSE 平均变差 50-67%, 负贡献明显.
 
-    此版本:
-      - 一次性对所有通道做 rfft
-      - 一次性 topk 找主频
-      - 用 advanced indexing 批量 gather 复数
-      - 用 broadcasting 一次性生成所有 (B,K,C) 通道的余弦波
-      - 完全无 Python 循环, 无 .item() 同步
+    LinearResidual 的设计目标:
+      - 用极少量参数, 让网络自己学"该不该修、修什么"
+      - 参数量跟数据维度解耦, 不随 batch/H 变
+
+    结构 (共享下投影 + 通道独享上投影 + 通道独享 gate):
+      1. 共享下投影: down_len -> latent_dim (单 Linear, 跨通道共享)
+         捕获跨通道共有的"宏观残差"模式 (季节性/趋势修正等)
+      2. 通道独享上投影: latent_dim -> pred_len (per-channel Linear)
+         让每个通道学自己的细节修正
+      3. per-channel bias + per-channel learnable gate (sigmoid)
+         gate 初始化为 sigmoid(-2) ≈ 0.12, 模型需要主动"打开"修正
+         当某些通道的修正没用时, gate 会被训到 0, 退化成纯 trend 预测
+
+    参数量:
+      ETTm2 (7 vars, latent_dim=4):   ~3K  (down_len=24, pred_len=96)
+      Electricity (321 vars, latent=4): ~125K
+      设置 latent_dim=0 → 完全关闭, 0 参数
     """
 
-    def __init__(self, k=2):
+    def __init__(self, sparse_ratio: int, n_vars: int, latent_dim: int = 4):
         super().__init__()
-        self.k = k  # 保留的主频数量
+        self.sparse_ratio = sparse_ratio
+        self.n_vars = n_vars
+        self.latent_dim = latent_dim
+        self.enabled = latent_dim > 0
+
+        if not self.enabled:
+            return
+
+        # 共享下投影: down_len -> latent_dim
+        # down_len 是 forward 时按 H 算出来的, 初始化时拿不到.
+        # 用 lazy 注册: 占位 Linear, 第一次 forward 时按真实 down_len 重建.
+        self._shared_proj = None  # lazy
+        self._shared_proj_init_dim = None  # 记录初始化时的 down_len, forward 时校验
+
+        # 通道独享上投影: latent_dim -> pred_len (weight/bias 一次性注册为 Parameter)
+        # 形状: [n_vars, pred_len, latent_dim] / [n_vars, pred_len]
+        # pred_len 在 forward 时才知道, 这里用 nn.Linear 注册模板, 第一次 forward 时按真实 pred_len 替换.
+        self._proj_template = None  # lazy
+
+    def _init_lazy_params(self, down_len: int, pred_len: int, device, dtype):
+        """在第一次 forward 时按真实 down_len / pred_len 初始化参数."""
+        if self._shared_proj is not None:
+            return
+        # 共享下投影
+        self._shared_proj = nn.Linear(down_len, self.latent_dim).to(device=device, dtype=dtype)
+        # 通道独享上投影 weight (n_vars, pred_len, latent_dim) + bias (n_vars, pred_len)
+        proj_w = torch.empty(self.n_vars, pred_len, self.latent_dim, device=device, dtype=dtype)
+        nn.init.kaiming_uniform_(proj_w, a=5 ** 0.5)
+        proj_b = torch.zeros(self.n_vars, pred_len, device=device, dtype=dtype)
+        self.proj_w = nn.Parameter(proj_w)
+        self.proj_b = nn.Parameter(proj_b)
+        # per-channel gate (sigmoid), 初始化为 -2 → sigmoid ≈ 0.12
+        self.gate = nn.Parameter(torch.full((self.n_vars,), -2.0, device=device, dtype=dtype))
 
     def forward(self, pred, x_enc):
         """
         pred:   [B, F, C] — 时域预测
         x_enc:  [B, H, C] — 原始输入序列
-        Returns:[B, F, C] — 修正后的预测
+        Returns:[B, F, C] — 加上可学习残差后的预测
         """
+        if not self.enabled:
+            return pred
+
         B, F, C = pred.shape
-        _, H, _ = x_enc.shape
-        K = min(self.k, H // 2)
+        H = x_enc.shape[1]
+        down_len = H // self.sparse_ratio
+        self._init_lazy_params(down_len, F, pred.device, pred.dtype)
 
-        # 一次性对所有 (B, C) 做 rfft
-        x_fft = torch.fft.rfft(x_enc, dim=1)           # [B, H//2+1, C]
-        fft_mag = torch.abs(x_fft[:, 1:])               # [B, H//2, C]  (排除 DC)
-        topk_vals, topk_idx = torch.topk(fft_mag, K, dim=1)  # [B, K, C]
-        topk_idx = topk_idx + 1                         # 还原到 x_fft 的索引 (+1 跳过 DC)
+        # 与 Stage 1 共享同一组下采样索引, 保证输入一致
+        indices = torch.arange(0, H, self.sparse_ratio, device=x_enc.device)
+        actual_indices = indices[-down_len:]                  # [down_len]
+        x_down = x_enc[:, actual_indices, :]                  # [B, down_len, C]
 
-        # 批量 gather: x_fft[b, topk_idx[b,k,c], c] → [B, K, C]
-        b_idx = torch.arange(B, device=pred.device).view(B, 1, 1).expand(-1, K, C)
-        c_idx = torch.arange(C, device=pred.device).view(1, 1, C).expand(B, K, -1)
-        x_fft_topk = x_fft[b_idx, topk_idx, c_idx]      # [B, K, C] complex
-        amplitude = torch.abs(x_fft_topk)               # [B, K, C]
-        phase = torch.angle(x_fft_topk)                 # [B, K, C]
-        freq_idx = topk_idx.float()                     # [B, K, C]
+        # Step 1: 共享下投影, 把 down_len 维度压成 latent_dim
+        # 沿通道维共享: shared_proj(x_down[b, :, c])  对所有 c 一致
+        # 把 (B, down_len, C) -> (B, C, down_len) 然后 Linear
+        x_latent = self._shared_proj(x_down.permute(0, 2, 1))  # [B, C, latent_dim]
 
-        # 一次性生成所有 (B, K, C) 的余弦波:  shape [B, K, C, F]
-        t = torch.arange(F, device=pred.device, dtype=pred.dtype)  # [F]
-        arg = (2 * math.pi * freq_idx.unsqueeze(-1) * t.view(1, 1, 1, F) / H
-               + phase.unsqueeze(-1))                              # [B, K, C, F]
-        waves = amplitude.unsqueeze(-1) * torch.cos(arg)           # [B, K, C, F]
-        correction = waves.sum(dim=1) * 0.1                        # [B, C, F]
-        correction = correction.transpose(1, 2).contiguous()       # [B, F, C]
+        # Step 2: 通道独享上投影: latent_dim -> pred_len
+        # proj_w[c] 是 (pred_len, latent_dim), einsum: out[b, c, t] = sum_l x_latent[b, c, l] * proj_w[c, t, l]
+        correction = torch.einsum('bcl,ctl->bct', x_latent, self.proj_w) + self.proj_b  # [B, C, pred_len]
+        correction = correction.transpose(1, 2)                                          # [B, pred_len, C]
 
-        return pred + correction
+        # Step 3: per-channel gate
+        gate = torch.sigmoid(self.gate).view(1, 1, C)
+        return pred + correction * gate
 
 
 class Model(nn.Module):
@@ -144,7 +191,7 @@ class Model(nn.Module):
 
     阶段一: 稀疏趋势提取 (跨周期下采样)
     阶段二: 分组轻量 MLP (变量间交互)
-    阶段三: 频域残差修正 (FFT 细节捕捉)
+    阶段三: 可学习残差修正 (共享投影 + 通道独享 bottleneck + 通道独享 gate)
     """
 
     def __init__(self, configs):
@@ -156,7 +203,7 @@ class Model(nn.Module):
         # 参数
         self.sparse_ratio = getattr(configs, 'sparse_ratio', 4)
         self.group_size = getattr(configs, 'group_size', 16)
-        fft_k = getattr(configs, 'fft_residual_k', 2)
+        residual_latent_dim = getattr(configs, 'residual_latent_dim', 4)
 
         # 阶段一: 稀疏趋势提取
         # 每个变量独立的下采样线性层
@@ -173,8 +220,13 @@ class Model(nn.Module):
             latent_dim=32,
         )
 
-        # 阶段三: 频域残差修正
-        self.fft_correction = FFTCorrection(k=fft_k)
+        # 阶段三: 可学习残差修正 (替代 v2.0 的 FFT 频域修正)
+        # residual_latent_dim=0 时彻底关闭, 0 参数
+        self.residual = LinearResidual(
+            sparse_ratio=self.sparse_ratio,
+            n_vars=self.enc_in,
+            latent_dim=residual_latent_dim,
+        )
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
         """
@@ -206,7 +258,7 @@ class Model(nn.Module):
         # ========== 阶段二: 分组轻量MLP 变量间交互 ==========
         interacted = self.group_mlp(trend_out)  # [B, pred_len, C]
 
-        # ========== 阶段三: 频域残差修正 (向量化) ==========
-        output = self.fft_correction(interacted, x_enc)  # [B, pred_len, C]
+        # ========== 阶段三: 可学习残差修正 (向量化) ==========
+        output = self.residual(interacted, x_enc)  # [B, pred_len, C]
 
         return output

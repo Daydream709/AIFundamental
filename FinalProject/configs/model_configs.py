@@ -239,9 +239,9 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
 
     # ========================================================================
     # Lite-SparseNet — 自研轻量化模型
-    # 核心贡献2: 稀疏采样 + 分组MLP + FFT残差
+    # 核心贡献2: 稀疏采样 + 分组MLP + 可学习残差修正
     # 参数量: ~0.018M (< 0.05M ✓)
-    # 核心参数: sparse_ratio, group_size, fft_residual_k
+    # 核心参数: sparse_ratio, group_size, residual_latent_dim
     # ========================================================================
     'LiteSparseNet': {
         # 低维 (ETTm2: 7变量) — 组数少，group_size 自动适应
@@ -249,28 +249,28 @@ MODEL_PRESETS: Dict[str, Dict[str, ModelPreset]] = {
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,  # 不使用
             dropout=0.05, learning_rate=1e-3,  # 轻量模型用更高学习率
             batch_size=64, train_epochs=50, patience=10,
-            extra={'sparse_ratio': 2, 'group_size': 4, 'fft_residual_k': 2},
+            extra={'sparse_ratio': 2, 'group_size': 4, 'residual_latent_dim': 4},
         ),
         # 中维 (Weather: 21变量) — group_size=8
         'mid_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
             batch_size=64, train_epochs=50, patience=10,
-            extra={'sparse_ratio': 2, 'group_size': 8, 'fft_residual_k': 2},
+            extra={'sparse_ratio': 2, 'group_size': 8, 'residual_latent_dim': 4},
         ),
         # 高维 (Electricity: 321变量) — 大group_size 捕获变量交互
         'high_dim': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
             batch_size=64, train_epochs=50, patience=10,
-            extra={'sparse_ratio': 2, 'group_size': 16, 'fft_residual_k': 3},
+            extra={'sparse_ratio': 2, 'group_size': 16, 'residual_latent_dim': 4},
         ),
         # 多模态 (Environment: 6变量)
         'multimodal': ModelPreset(
             d_model=512, n_heads=8, e_layers=1, d_ff=2048,
             dropout=0.05, learning_rate=1e-3,
             batch_size=64, train_epochs=50, patience=10,
-            extra={'sparse_ratio': 2, 'group_size': 4, 'fft_residual_k': 2},
+            extra={'sparse_ratio': 2, 'group_size': 4, 'residual_latent_dim': 4},
         ),
     },
 }

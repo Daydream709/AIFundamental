@@ -67,7 +67,7 @@ class BaseConfig:
     # ==================== Lite-SparseNet 专用 ====================
     sparse_ratio: int = 4             # 下采样因子 p (H -> H/p)
     group_size: int = 16              # 分组MLP的组大小
-    fft_residual_k: int = 2           # FFT残差保留的主频数
+    residual_latent_dim: int = 4      # LinearResidual 瓶颈维度 (0 = 关闭残差, 0 参数)
     use_lite_revin: bool = True       # ★ 创新优化: 极简RevIN实例归一化
     use_shared_weight: bool = True    # ★ 创新优化: trend_extractor 共享权重 + 变量bias
 

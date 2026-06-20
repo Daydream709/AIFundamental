@@ -1,24 +1,25 @@
 """
-Train Line 4b: Lite-SparseNet Ablation (Lightweight)
-====================================================
+Train Line 4b: Lite-SparseNet Ablation (Lightweight, v2.1)
+==========================================================
 
-Disables each of the 3 Lite-SparseNet stages to measure its
-contribution. The baseline (B0) is the full model.
+Ablation study on the new LinearResidual module (v2.1), which replaces
+the v2.0 FFT-based frequency correction. v2.0 results showed that
+removing FFT entirely (B2 in the old ablation) improved MSE by 50-67%,
+indicating FFT was a net negative. v2.1 introduces a learnable residual
+with a per-channel gate; this ablation measures its contribution.
 
-  Model:    LiteSparseNet (v2.0: 3-stage design, per-variable weights)
+  Model:    LiteSparseNet (v2.1: 3-stage + LinearResidual, per-variable weights)
   Datasets: ETTm2, Electricity, Environment (low/mid/high dim)
-  Settings (3): B0 baseline + B1, B2 = vary one stage's parameter
-    B0 - 完整 (baseline: sparse_ratio=4, group_size=4, fft_residual_k=2)
-    B1 - 减弱阶段二 (group_size 减小 → 变量间交互弱化)
-    B2 - 减弱阶段三 (fft_residual_k 减小 → FFT 细节修正弱化)
+  Settings (3): B0 baseline + B1 narrow + B2 off
+    B0 - 完整 (baseline: residual_latent_dim=4, 共享下投影 + 通道独享上投影 + 通道独享 gate)
+    B1 - 窄瓶颈 (residual_latent_dim=1 → 残差模块表达力降低)
+    B2 - 关闭残差 (residual_latent_dim=0 → 0 参数, 完全退化成纯 trend 预测)
 
-  注: v2.0 Lite 没有"完全关闭某个阶段"的开关 (那是 v2.1 Lite-RevIN/共享权重的变体),
-      所以消融采用"减弱该阶段参数"而不是"完全关闭" — 这能反映各阶段的相对贡献。
   Total:     3 × 3 × 1 = 9 runs (pred_len=96, by default)
 
 Output files:
   - results/ablation_lite_{ts}.csv  (per-run)
-  - results/ablation_lite.csv       (APPENDED)
+  - results/ablation_lite_latest.csv (always-current, for viz)
 
 Usage:
   python scripts/train_line4b_lite.py
@@ -51,22 +52,23 @@ DATASETS = ["ETTm2", "Electricity", "Environment"]
 SEQ_LEN = 96
 DEFAULT_PRED_LEN = 96
 
-# 3 个消融设置 — v2.0 Lite-SparseNet 的 3 阶段设计
-# v2.0 通过减小/增大关键参数来"减弱"某阶段，而非完全关闭
+# 3 个消融设置 — v2.1 Lite-SparseNet 的可学习残差模块
+# B0 默认 latent_dim=4; B1 缩到 1 (窄瓶颈, 表达力受限);
+# B2 设 0 → LinearResidual.__init__ 直接走 enabled=False 分支, 0 参数, 0 计算
 LITE_ABLATION_SETTINGS = [
-    # (setting_label, extra_config_to_weaken_stage)
-    ("B0 - 完整", {}),  # baseline
-    ("B1 - 减弱阶段二 (group_size 16 → 变量交互弱化)", {"group_size": 16}),
-    ("B2 - 减弱阶段三 (fft_residual_k 0 → 无 FFT 修正)", {"fft_residual_k": 0}),
+    # (setting_label, extra_config_to_tweak_residual)
+    ("B0 - 完整 (residual_latent_dim=4)", {}),  # baseline, default
+    ("B1 - 窄瓶颈 (residual_latent_dim=1)", {"residual_latent_dim": 1}),
+    ("B2 - 关闭残差 (residual_latent_dim=0)", {"residual_latent_dim": 0}),
 ]
-LITE_GROUP_NAME = "Lite 3 Stages"  # 同步到 viz-frontend/src/data/lines.ts LITE_ABLATION_GROUPS
+LITE_GROUP_NAME = "Lite Residual"  # 同步到 viz-frontend/src/data/lines.ts LITE_ABLATION_GROUPS
 
 
 def main():
     compute = detect_compute()
     print_compute_banner(compute)
 
-    parser = argparse.ArgumentParser(description="Train Line 4b: Lite Ablation (v2.0)")
+    parser = argparse.ArgumentParser(description="Train Line 4b: Lite Residual Ablation (v2.1)")
     parser.add_argument(
         "--epochs", type=int, default=30,
         help="训练轮数 (默认 30; 在所有设备上保持一致, 仅 AMP 开关不同)",
@@ -83,7 +85,7 @@ def main():
     total = len(LITE_ABLATION_SETTINGS) * len(DATASETS)
     print()
     print("╔" + "═" * 68 + "╗")
-    print("║  Line 4b: Lite 消融（轻量化，v2.0）" + " " * 29 + "║")
+    print("║  Line 4b: Lite 残差消融（轻量化，v2.1）" + " " * 22 + "║")
     print(f"║  {len(LITE_ABLATION_SETTINGS)} settings × {len(DATASETS)} datasets × pred_len={args.pred_len} = {total} runs".ljust(69) + "║")
     print("╚" + "═" * 68 + "╝")
 
@@ -107,7 +109,7 @@ def main():
 
     df = pd.DataFrame(results)
     save_ablation_results(df, prefix="lite")
-    print_summary(results, "Line 4b (Lite Ablation v2.0)")
+    print_summary(results, "Line 4b (Lite Residual Ablation v2.1)")
 
 
 if __name__ == "__main__":

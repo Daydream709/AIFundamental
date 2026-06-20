@@ -429,6 +429,18 @@ def run_experiment(
                 except Exception:
                     pass
 
+    # Mark all explicitly-set keys so _apply_model_preset won't override them
+    # in ExpBasic.__init__. Without this, the preset's "current == default"
+    # check would silently roll back ablation flags (e.g. B1 sets group_size=16
+    # which is also BaseConfig's default, so the preset would re-write it to
+    # the dataset preset's value and the ablation would do nothing).
+    user_set = {"model", "train_epochs", "gpu"}
+    if compute is not None:
+        user_set.update({"use_amp", "amp_dtype", "device_id", "batch_size"})
+    if extra_config:
+        user_set.update(k for k in extra_config.keys() if k != "label")
+    config._user_set_keys = user_set
+
     fix_seed(config.seed)
     try:
         exp = ExpTrain(config)
