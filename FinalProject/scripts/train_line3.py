@@ -47,19 +47,25 @@ setup_path()
 
 
 # Configuration (matches viz-frontend/src/data/lines.ts LINES[3])
+# Models + image-flag mapping (v2.0 data dir has satellite_imgs)
 MODELS = ["PatchTST", "Mamba"]
 DATASETS = ["Environment"]
 PRED_LENS = [96, 192]
 SEQ_LEN = 96
 
-# (text_mode_label, extra_config_for_dataset)
-# These map to the project's multimodal fusion strategies.
+# 7 multimodal fusion strategies (5 text + 2 image combinations)
+# Modality flags map to multimodal_builder's use_text / use_satellite.
+# `use_satellite` reads dataset/satellite_imgs/{date}.png
 TEXT_MODES = [
-    ("baseline", {"use_text": False, "text_mode": "baseline"}),
-    ("report", {"use_text": True, "text_mode": "report_only"}),
-    ("search", {"use_text": True, "text_mode": "search_only"}),
-    ("both_concat", {"use_text": True, "text_mode": "concat"}),
-    ("both_gating", {"use_text": True, "text_mode": "gating"}),
+    # (text_mode_label, extra_config_for_dataset)
+    ("baseline",          {"use_text": False, "use_satellite": False, "text_mode": "baseline"}),
+    ("report",            {"use_text": True,  "use_satellite": False, "text_mode": "report_only"}),
+    ("search",            {"use_text": True,  "use_satellite": False, "text_mode": "search_only"}),
+    ("both_concat",       {"use_text": True,  "use_satellite": False, "text_mode": "concat"}),
+    ("both_gating",       {"use_text": True,  "use_satellite": False, "text_mode": "gating"}),
+    # Image modality (卫星图, dataset/satellite_imgs/*.png)
+    ("satellite",         {"use_text": False, "use_satellite": True,  "text_mode": "baseline"}),
+    ("text+satellite",    {"use_text": True,  "use_satellite": True,  "text_mode": "gating"}),
 ]
 
 
@@ -73,7 +79,7 @@ def main():
     print()
     print("╔" + "═" * 68 + "╗")
     print("║  Line 3: 多模态消融 (Multimodal Ablation on Environment)" + " " * 10 + "║")
-    print(f"║  {len(MODELS)} models × {len(TEXT_MODES)} text_modes × {len(PRED_LENS)} pred_lens = {total} runs".ljust(69) + "║")
+    print(f"║  {len(MODELS)} models × {len(TEXT_MODES)} modalities × {len(PRED_LENS)} pred_lens = {total} runs".ljust(69) + "║")
     print("╚" + "═" * 68 + "╝")
 
     results = []
