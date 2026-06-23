@@ -4,24 +4,10 @@
 >
 > 默认分支：`mps-perf`（包含 MPS 性能优化 + LiteSparseNet v2.1 LinearResidual）。
 > 稳定分支：`main`（不含 MPS 专项优化，CUDA 友好）。
+> 你需要做两件事：1、跑四条主线（1、2、3、4a、4b），得到实验数据 2、改进两个我的自研模型（高性能/轻量化）
+> 重点看5:怎么跑实验以及8:自研模型改进指南
 
 ---
-
-## 目录
-
-- [0. TL;DR — 给接手同事的 5 分钟速览](#0-tldr--给接手同事的-5-分钟速览)
-- [1. 项目结构](#1-项目结构)
-- [2. 环境搭建](#2-环境搭建)
-- [3. 数据集](#3-数据集)
-- [4. 模型阵容](#4-模型阵容)
-- [5. 怎么跑实验](#5-怎么跑实验)
-- [6. 输出格式与数据流向](#6-输出格式与数据流向)
-- [7. 可视化](#7-可视化)
-- [8. 自研模型改进指南](#8-自研模型改进指南)
-- [9. 计算资源 (M5 vs 4090)](#9-计算资源-m5-vs-4090)
-- [10. 分支策略](#10-分支策略)
-- [11. 常见问题](#11-常见问题)
-- [12. 进阶阅读](#12-进阶阅读)
 
 ---
 
@@ -35,13 +21,13 @@ pip install -r requirements.txt
 
 # 2) 数据集在 dataset/ 下, 已就绪, 不用下载
 ls dataset/   # 应该有 ETTm2.csv / Weather.csv / Electricity.csv / Environment.csv
+python data_provider/preprocess_satellite.py   # 构建图像模态
 
-# 3) 跑一条消融主线, 全部 9 个 run
+# 3) 跑一条消融主线, 测试能否跑通，全部 9 个 run
 python scripts/train_line4b_lite.py        # 轻量化自研模型消融, ~15 分钟 (M5) / 更短 (4090)
 
-# 4) 看结果
-cat results/ablation_lite_latest.csv       # 当前最新结果
-cat results/ablation_lite_*.csv           # 历史快照 (按时间戳)
+# 4) 结果在results文件夹中
+
 ```
 
 更多主线：
@@ -268,7 +254,7 @@ python data_provider/preprocess_timemmd.py
 
 `iTransformer.py` / `TimeMixer.py` / `Chronos2.py` 是 thuml 桥接 stub（4 字节），但 `model_configs.py` 当前没启用它们 — 不要直接在 train_line*.py 里用，需要先补全 preset。
 
-### 4.2 自研模型的设计要点
+### 4.2 自研模型的要点
 
 #### KANiTransformer（`models/kan_iTransformer.py`）
 
@@ -294,7 +280,7 @@ python data_provider/preprocess_timemmd.py
 
 ---
 
-## 5. 怎么跑实验
+## 5. 怎么跑实验 🌟
 
 所有主线都从 `scripts/train_line*.py` 入口。每条线独立输出到 `results/line{N}_*.csv` 或 `results/ablation_*_*.csv`。
 
@@ -445,37 +431,7 @@ python scripts/sync_results.py
 
 `ablation_lite_20260620_202507.csv` 是 **v2.0 FFT** 的基线，`ablation_lite_20260620_215657.csv` 是 **v2.1 LinearResidual** 的新结果 — 保留两个做对比。
 
-### 6.3 MPS 性能优化的"魔术"在哪
 
-- **`mps-perf` 分支额外做的事**（**对 M5 用户必看**）：
-  1. `data_provider/preloaded_dataset.py` — 把每个 (train/val/test) 一次性 materialize 到 MPS unified memory，避免 per-batch CPU→MPS 拷贝
-  2. `data_provider/dataset_base.py:preload_to_device()` — 用 `np.sliding_window_view` 一次性构造所有滑窗
-  3. `models/LiteSparseNet.py:LinearResidual` — 替代原 FFT 修正（v2.0 的 FFT 在 MPS 上有 Python 三重循环 + `.item()` 同步，3+ 分钟/epoch；新版本 ~1.4ms/batch）
-  4. `scripts/_common.py:detect_compute()` — 自动检测设备，CUDA 用原 DataLoader，MPS 走 preloaded 路径
-- **CUDA 用户**（4090）这些都用不上，CUDA 走原来的 num_workers=8 + pin_memory=True 路径
-- **MPS 用户**这些加起来把单 epoch 从 ~45s 降到 ~0.2s（200x 加速数据侧）
-
----
-
-## 7. 可视化
-
-`viz-frontend/` 是 Next.js 前端。重要对齐点：
-
-- `viz-frontend/src/data/lines.ts` 里的 `LITE_ABLATION_GROUPS = ["Lite Residual"]` 必须和 `scripts/train_line4b_lite.py` 里的 `LITE_GROUP_NAME = "Lite Residual"` 一致
-- 类似有 `KAN_ABLATION_GROUPS = ["KAN 5 Modules"]`
-
-启动前端（不需要 GPU）：
-
-```bash
-cd viz-frontend
-npm install
-npm run dev
-# 访问 http://localhost:3000
-```
-
-前端会自动从 `results/line{N}_latest.csv` 和 `results/ablation_*_latest.csv` 拉数据。
-
----
 
 ## 8. 自研模型改进指南
 
@@ -564,13 +520,6 @@ python scripts/train_line4b_lite.py
 python scripts/train_line4b_lite.py
 ```
 
-**关键代码位置速查**：
-
-- Stage 1 (sparse trend) — `models/LiteSparseNet.py:Model.forward` 中 `_seq_windows` 调用
-- Stage 2 (group MLP) — `GroupLightMLP` 类（约 line 19-82）
-- Stage 3 (LinearResidual) — `LinearResidual` 类（约 line 95-218），gate 初始化在 lazy init
-- Per-channel 参数量计算 — `model_configs.py:lite_iTransformer` 节
-
 ---
 
 ## 9. 计算资源 (M5 vs 4090)
@@ -589,14 +538,6 @@ python scripts/train_line4b_lite.py
 
 按设计，**不同设备上 batch_size / epochs / lr 完全一致**，只有 AMP 开关不同。所以 M5 和 4090 上跑出来的结果**理论上可比**（虽然 M5 慢很多）。M5 上没 AMP 速度会慢 2x 左右。
 
-### 9.3 推荐配置
-
-| 资源 | 跑哪些主线 | 估算时间 |
-|---|---|---|
-| M5 Mac (24GB unified) | 1-2 个 line 优先（用 mps-perf 分支）| Line 1 约 2-3h，Line 4b 约 15min |
-| RTX 4090 (24GB) | 全跑 | 全部加起来约 4-6 小时 |
-| 双机协同 | M5 跑 4a/4b，4090 跑 1/2/3 | 各半天 |
-
 ---
 
 ## 10. 分支策略
@@ -607,95 +548,16 @@ python scripts/train_line4b_lite.py
 | `mps-perf` | 最新 | 包含 `main` 全部 + MPS preload + v2.1 LinearResidual + B1 bug fix + 更新文档 | M5 Mac 用户、需要最新改进 |
 | `mac-mps` | 旧 | 同步自 main 的旧版本 | — |
 
-**给接手同事的建议**：
+**建议**：
 1. 如果是 M5 Mac → `git checkout mps-perf`
 2. 如果是 4090 → `git checkout main`（mps-perf 的 MPS 优化在 CUDA 上不会启用，但代码更复杂）
 3. 实验结果在不同分支上**不能直接对比**（mps-perf 的 LiteSparseNet 已经是 v2.1 LinearResidual，跟 main 的 v2.0 FFT 不一样）
-
-合并计划：等 v2.1 验收完，merge `mps-perf` → `main` 作为 v2.1 正式版。
 
 ---
 
 ## 11. 常见问题
 
-### Q1: 跑训练时报 `ModuleNotFoundError: No module named 'exp.exp_train'`
 
-原因：`sys.path` 里 `third_party/TimeSeriesLibrary/exp` 优先于本仓库 `exp/`。**修复**：确保用最新版的 `_common.py:setup_path()`（本 README 假设的版本会把项目根放到 sys.path 第一个）：
-
-```python
-# _common.py:setup_path 应该长这样
-project_root = str(PROJECT_ROOT)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)  # 项目根在最前
-tsl_root = str(PROJECT_ROOT / "third_party" / "TimeSeriesLibrary")
-if tsl_root not in sys.path:
-    sys.path.append(tsl_root)        # TSL 在最后
-```
-
-### Q2: 数据集 `.csv` 找不到
+### Q1: 数据集 `.csv` 找不到
 
 确认在 FinalProject/ 目录下运行，CSV 在 `dataset/` 子目录里（不是 `FinalProject/FinalProject/dataset/`）。
-
-### Q3: `models/__init__.py` 报 KAN 错误
-
-KAN 模型依赖 `layers/kan_layers.py`。`models/__init__.py` 在 import 时会触发 KAN 导入。如果只想测 LiteSparseNet 而不想触发整个 `models/` 的导入：
-
-```python
-import importlib.util
-spec = importlib.util.spec_from_file_location('LSN', 'models/LiteSparseNet.py')
-LSN = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(LSN)
-```
-
-### Q4: 训练中途崩了，已完成的 run 还在吗
-
-**在**。每个 run 完成后立即 append 到 `line{N}_partial.csv`，崩了只是丢当前这个。重启训练会自动续跑（不会重新跑已完成的）。
-
-### Q5: 怎么强制重跑某个 run
-
-删掉 `line{N}_partial.csv` 里的对应行（按 model/dataset/setting 删），再重跑脚本。
-
-### Q6: `GPUMem(MB)` 永远是 0
-
-MPS 已知缺陷（`utils/efficiency.py:measure_gpu_memory` 在 MPS 上没实现）。4090 上会正常返回显存峰值。
-
-### Q7: KAN 训练特别慢 / 显存爆炸
-
-减小 batch_size（在 `configs/model_configs.py` 里 KANiTransformer 的 preset 改 `batch_size`），或关掉模块 1 (KAN) 看是不是 KAN 层在吃资源（对应 Line 4a 的 A1）。
-
-### Q8: 想看训练中间过程
-
-每个 epoch 结束打印 `Epoch N/M | Train Loss: ... | Val Loss: ...`，stdout 是 stdout 实时输出。如果跑了后台想看：`tail -f /tmp/claude-*/.../tasks/{task_id}.output`。
-
----
-
-## 12. 进阶阅读
-
-| 文档 | 内容 |
-|---|---|
-| [docs/project-plan-v2.0.md](docs/project-plan-v2.0.md) | **主计划**（含 v2.1 更新说明 + LinearResidual 设计笔记 + 实测结果）|
-| [docs/model-architecture.md](docs/model-architecture.md) | 9 个模型的技术原理（部分已过时）|
-| [docs/experiment-guide.md](docs/experiment-guide.md) | 实验参数、运行方法（旧版）|
-| [docs/project-structure.md](docs/project-structure.md) | 项目结构（旧版）|
-| [docs/server-guide.md](docs/server-guide.md) | 服务器部署 |
-
-**关键 commit**（按时间倒序）：
-
-```
-8267721 results: v2.1 line 4b ablation (9/9) + v2.0 baseline preserved
-ce3e6d4 docs: document v2.1 changes (LinearResidual + B1 bug fix + new ablation)
-72e385d feat(mps): replace LiteSparseNet FFT correction with learnable LinearResidual
-a56b6e2 perf(mps): preload all sliding windows to unified memory (200x data-side speedup)
-6e915cb feat: device-aware AMP toggle + vectorize LiteSparseNet FFT correction
-91507f3 chore: untrack .pyc / __pycache__ (already in .gitignore)
-```
-
----
-
-## 联系与支持
-
-接手时遇到问题：
-1. 先看 [docs/project-plan-v2.0.md](docs/project-plan-v2.0.md) 的 v2.1 设计笔记
-2. 跑 `python -c "from _common import detect_compute; print(detect_compute())"` 确认环境
-3. 跑 `python scripts/train_line4b_lite.py --epochs 5` 做端到端冒烟
-4. 用 git log 看最近的 commit message 了解改动意图
