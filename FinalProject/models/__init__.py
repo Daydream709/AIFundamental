@@ -14,10 +14,13 @@ import sys, os
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _THUML_ROOT = os.path.join(_PROJECT_ROOT, 'third_party', 'TimeSeriesLibrary')
 
-# 确保路径: 项目根 > thuml库
-for p in [_PROJECT_ROOT, _THUML_ROOT]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+# 确保路径: 项目根 > thuml库。TimeSeriesLibrary 也有 layers/ 包，
+# 若它排在项目根之前，会遮蔽本项目的 layers.kan_layers 等自研模块。
+if _PROJECT_ROOT in sys.path:
+    sys.path.remove(_PROJECT_ROOT)
+sys.path.insert(0, _PROJECT_ROOT)
+if _THUML_ROOT not in sys.path:
+    sys.path.append(_THUML_ROOT)
 
 # thuml 官方实现 — 4个基线模型
 from third_party.TimeSeriesLibrary.models.DLinear import Model as DLinear

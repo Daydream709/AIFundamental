@@ -18,6 +18,7 @@ class Model(nn.Module):
     def __init__(self, configs):
         super(Model, self).__init__()
         self.task_name = configs.task_name
+        self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
 
         self.d_inner = configs.d_model * configs.expand
@@ -29,6 +30,7 @@ class Model(nn.Module):
         self.norm = RMSNorm(configs.d_model)
 
         self.out_layer = nn.Linear(configs.d_model, configs.c_out, bias=False)
+        self.temporal_projection = nn.Linear(configs.seq_len, configs.pred_len) if configs.pred_len != configs.seq_len else None
 
     def forecast(self, x_enc, x_mark_enc):
         mean_enc = x_enc.mean(1, keepdim=True).detach()
@@ -42,6 +44,8 @@ class Model(nn.Module):
 
         x = self.norm(x)
         x_out = self.out_layer(x)
+        if self.temporal_projection is not None:
+            x_out = self.temporal_projection(x_out.transpose(1, 2)).transpose(1, 2)
 
         x_out = x_out * std_enc + mean_enc
         return x_out

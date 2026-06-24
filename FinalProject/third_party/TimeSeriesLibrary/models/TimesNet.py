@@ -8,7 +8,10 @@ from layers.Conv_Blocks import Inception_Block_V1
 
 def FFT_for_Period(x, k=2):
     # [B, T, C]
-    xf = torch.fft.rfft(x, dim=1)
+    # torch.fft on CUDA does not support BF16/FP16 inputs; AMP can feed
+    # TimesNet BF16 activations, so keep only the FFT period search in FP32.
+    fft_input = x.float() if x.dtype in (torch.float16, torch.bfloat16) else x
+    xf = torch.fft.rfft(fft_input, dim=1)
     # find period by amplitudes
     frequency_list = abs(xf).mean(0).mean(-1)
     frequency_list[0] = 0
@@ -44,7 +47,11 @@ class TimesBlock(nn.Module):
             if (self.seq_len + self.pred_len) % period != 0:
                 length = (
                                  ((self.seq_len + self.pred_len) // period) + 1) * period
-                padding = torch.zeros([x.shape[0], (length - (self.seq_len + self.pred_len)), x.shape[2]]).to(x.device)
+                padding = torch.zeros(
+                    [x.shape[0], (length - (self.seq_len + self.pred_len)), x.shape[2]],
+                    device=x.device,
+                    dtype=x.dtype,
+                )
                 out = torch.cat([x, padding], dim=1)
             else:
                 length = (self.seq_len + self.pred_len)

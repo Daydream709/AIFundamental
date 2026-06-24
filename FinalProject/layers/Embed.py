@@ -103,6 +103,13 @@ class TimeFeatureEmbedding(nn.Module):
         self.embed = nn.Linear(d_inp, d_model, bias=False)
 
     def forward(self, x):
+        expected_dim = self.embed.in_features
+        if x.size(-1) > expected_dim:
+            x = x[..., :expected_dim]
+        elif x.size(-1) < expected_dim:
+            pad = torch.zeros(*x.shape[:-1], expected_dim - x.size(-1),
+                              device=x.device, dtype=x.dtype)
+            x = torch.cat([x, pad], dim=-1)
         return self.embed(x)
 
 
