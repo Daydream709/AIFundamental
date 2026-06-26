@@ -1,0 +1,10 @@
+MSE,MAE,RMSE,MAPE,SMAPE,Params(M),FLOPs(G),InferTime(ms),GPUMem(MB),status,model,dataset,seq_len,pred_len,label,ablation,setting
+0.11288428,0.23836891,0.33598256,169.78398,65.669495,0.036783,0.00389543,0.19594432830810546,21.63232421875,success,LiteSparseNet,ETTm2,96,96,B0 - 完整 (residual_latent_dim=4),Lite Residual,B0 - 完整 (residual_latent_dim=4)
+0.23676567,0.3208214,0.48658574,236.39552,60.256344,1.686021,0.058080392,1.2115430450439453,79.42333984375,success,LiteSparseNet,Electricity,96,96,B0 - 完整 (residual_latent_dim=4),Lite Residual,B0 - 完整 (residual_latent_dim=4)
+0.3720695,0.43101576,0.609975,159.79543,85.92119,0.031598,0.003563542,0.19917312622070313,21.515625,success,LiteSparseNet,Environment,96,96,B0 - 完整 (residual_latent_dim=4),Lite Residual,B0 - 完整 (residual_latent_dim=4)
+0.1152166,0.2403875,0.3394357,173.64091,65.41458,0.03462,0.003701878,0.18902271270751952,21.61669921875,success,LiteSparseNet,ETTm2,96,96,B1 - 窄瓶颈 (residual_latent_dim=1),Lite Residual,B1 - 窄瓶颈 (residual_latent_dim=1)
+0.23437095,0.32005164,0.48411873,234.61621,60.388138,1.593426,0.055861858,1.1714176177978515,78.65869140625,success,LiteSparseNet,Electricity,96,96,B1 - 窄瓶颈 (residual_latent_dim=1),Lite Residual,B1 - 窄瓶颈 (residual_latent_dim=1)
+0.3635315,0.4272491,0.60293573,153.46117,84.97116,0.029723,0.003397661,0.19498367309570314,21.501953125,success,LiteSparseNet,Environment,96,96,B1 - 窄瓶颈 (residual_latent_dim=1),Lite Residual,B1 - 窄瓶颈 (residual_latent_dim=1)
+0.11360184,0.23817217,0.3370487,172.35478,65.361664,0.03322,0.003637364,0.11770560264587403,21.60205078125,success,LiteSparseNet,ETTm2,96,96,B2 - 关闭残差 (residual_latent_dim=0),Lite Residual,B2 - 关闭残差 (residual_latent_dim=0)
+0.23482826,0.32010695,0.48459083,236.34703,60.282547,1.531424,0.05512228,1.0835123443603516,73.0498046875,success,LiteSparseNet,Electricity,96,96,B2 - 关闭残差 (residual_latent_dim=0),Lite Residual,B2 - 关闭残差 (residual_latent_dim=0)
+0.3742722,0.43078846,0.6117779,156.29866,86.14023,0.028516,0.003342364,0.12235136032104492,21.4892578125,success,LiteSparseNet,Environment,96,96,B2 - 关闭残差 (residual_latent_dim=0),Lite Residual,B2 - 关闭残差 (residual_latent_dim=0)

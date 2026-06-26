@@ -148,8 +148,6 @@ Examples:
                               help='KANiTransformer: enable RevIN normalization')
     feature_group.add_argument('--no_revin', action='store_false', dest='use_revin',
                               help='Disable RevIN')
-    feature_group.add_argument('--use_masked_pretrain', action='store_true', default=None,
-                              help='Enable masked reconstruction pre-training')
 
     # ==================== 多模态 ====================
     mm_group = parser.add_argument_group('Multimodal (Environment dataset)')
@@ -214,7 +212,7 @@ def _apply_cli_overrides(config, args):
     # 布尔开关 (只有非 None 时才覆盖)
     bool_params = [
         'use_probabilistic', 'use_cfd', 'use_revin',
-        'use_masked_pretrain', 'use_text',
+        'use_text',
     ]
     for param in bool_params:
         value = getattr(args, param, None)

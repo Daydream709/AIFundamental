@@ -1,0 +1,29 @@
+MSE,MAE,RMSE,MAPE,SMAPE,Params(M),FLOPs(G),InferTime(ms),GPUMem(MB),status,model,dataset,seq_len,pred_len,label,line,text_mode,error
+0.43208194,0.43163845,0.6573294,981.7379,77.120865,6.903904,29.420414912,1.5430776977539062,2056.80908203125,success,PatchTST,Environment,96,96,baseline,3,baseline,
+0.5062691569328308,0.4766184985637665,0.7115259170532227,957.6798706054688,81.95223999023438,7.493824,29.646907328,1.5474412536621094,2068.197265625,success,PatchTST,Environment,96,192,baseline,3,baseline,
+0.432081937789917,0.4316384494304657,0.6573293805122375,981.7379150390624,77.12086486816406,6.903904,29.420414912,1.548086395263672,2056.3232421875,success,PatchTST,Environment,96,96,report,3,report,
+0.5062691569328308,0.4766184985637665,0.7115259170532227,957.6798706054688,81.95223999023438,7.493824,29.646907328,1.5477804565429687,2065.28955078125,success,PatchTST,Environment,96,192,report,3,report,
+0.432081937789917,0.4316384494304657,0.6573293805122375,981.7379150390624,77.12086486816406,6.903904,29.420414912,1.5518572998046876,2055.1357421875,success,PatchTST,Environment,96,96,search,3,search,
+0.5062691569328308,0.4766184985637665,0.7115259170532227,957.6798706054688,81.95223999023438,7.493824,29.646907328,1.548954315185547,2069.28955078125,success,PatchTST,Environment,96,192,search,3,search,
+0.432081937789917,0.4316384494304657,0.6573293805122375,981.7379150390624,77.12086486816406,6.903904,29.420414912,1.5475897216796874,2056.0107421875,success,PatchTST,Environment,96,96,both_concat,3,both_concat,
+0.5062691569328308,0.4766184985637665,0.7115259170532227,957.6798706054688,81.95223999023438,7.493824,29.646907328,1.547840576171875,2068.16455078125,success,PatchTST,Environment,96,192,both_concat,3,both_concat,
+0.432081937789917,0.4316384494304657,0.6573293805122375,981.7379150390624,77.12086486816406,6.903904,29.420414912,1.5484780883789062,2056.5732421875,success,PatchTST,Environment,96,96,both_gating,3,both_gating,
+0.5062691569328308,0.4766184985637665,0.7115259170532227,957.6798706054688,81.95223999023438,7.493824,29.646907328,1.5513516235351563,2068.16455078125,success,PatchTST,Environment,96,192,both_gating,3,both_gating,
+0.432081937789917,0.4316384494304657,0.6573293805122375,981.7379150390624,77.12086486816406,6.903904,29.420414912,1.5515737915039065,2055.3232421875,success,PatchTST,Environment,96,96,satellite,3,satellite,
+0.5062691569328308,0.4766184985637665,0.7115259170532227,957.6798706054688,81.95223999023438,7.493824,29.646907328,1.545819549560547,2069.03955078125,success,PatchTST,Environment,96,192,satellite,3,satellite,
+0.432081937789917,0.4316384494304657,0.6573293805122375,981.7379150390624,77.12086486816406,6.903904,29.420414912,1.5497535705566403,2055.3232421875,success,PatchTST,Environment,96,96,text+satellite,3,text+satellite,
+0.5062691569328308,0.4766184985637665,0.7115259170532227,957.6798706054688,81.95223999023438,7.493824,29.646907328,1.5499839782714844,2067.16455078125,success,PatchTST,Environment,96,192,text+satellite,3,text+satellite,
+,,,,,,,,,error,Mamba,Environment,96,96,baseline,3,baseline,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,192,baseline,3,baseline,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,96,report,3,report,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,192,report,3,report,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,96,search,3,search,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,192,search,3,search,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,96,both_concat,3,both_concat,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,192,both_concat,3,both_concat,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,96,both_gating,3,both_gating,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,192,both_gating,3,both_gating,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,96,satellite,3,satellite,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,192,satellite,3,satellite,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,96,text+satellite,3,text+satellite,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)
+,,,,,,,,,error,Mamba,Environment,96,192,text+satellite,3,text+satellite,mat1 and mat2 shapes cannot be multiplied (6144x4 and 3x128)

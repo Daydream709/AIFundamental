@@ -1,0 +1,3 @@
+model,dataset,Params(M),FLOPs(G)
+PatchTST,Environment,6.903904,29.420414912
+Mamba,Environment,0.2368,1.518997088

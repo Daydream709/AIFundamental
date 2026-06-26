@@ -6,7 +6,7 @@
         title="总实验数"
         :value="String(totalRuns)"
         icon="🧪"
-        :sub="`${dataStore.fileStatus.main === 'ok' ? '数据已加载' : '数据缺失'}`"
+        :sub="`${dataStore.fileStatus['line3_sparsetsf'] === 'ok' ? '数据已加载' : '数据缺失'}`"
       />
       <KPICard
         title="模型数"

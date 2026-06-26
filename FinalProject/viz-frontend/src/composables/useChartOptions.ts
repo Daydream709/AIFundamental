@@ -75,10 +75,18 @@ function emptyOption(title: string, message: string): EChartsOption {
 // -----------------------------------------------------------------
 
 function isAblationData(data: AnyResultRow[]): boolean {
-  return data.length > 0 && "ablation" in data[0] && !("model" in data[0]);
+  // An ablation row has an `ablation` column (group id) and a `setting`
+  // column (variant). We do NOT exclude by absence of `model` because
+  // ablation CSVs DO carry a `model` column (e.g. "KANiTransformer"),
+  // and excluding on that field would route ablation data through the
+  // default model+dataset grouping — collapsing to a single bar (only
+  // 1 model × 3 datasets) and breaking the ablation comparison.
+  // Line 3 multimodal rows have `text_mode` instead of `ablation`, so
+  // they correctly fall through to the text_mode branch below.
+  return data.length > 0 && "ablation" in data[0] && "setting" in data[0];
 }
 
-function buildBar(data: AnyResultRow[], metric: MetricName): EChartsOption {
+function buildBar(data: AnyResultRow[], metric: MetricName, groupBy: GroupBy = "model+dataset"): EChartsOption {
   const typed = data as any[];
   if (typed.length === 0) return emptyOption("无数据", "当前筛选条件无匹配数据");
   const ablation = isAblationData(data);
@@ -103,6 +111,31 @@ function buildBar(data: AnyResultRow[], metric: MetricName): EChartsOption {
       series,
     };
   }
+  // text_mode+pred_len grouping: x = text_mode, series = pred_len.
+  // Used by Line 3 (multimodal ablation) where there's only 1 model
+  // and 1 dataset — the default model+dataset grouping would collapse
+  // to a single bar.
+  if (groupBy === "text_mode+pred_len") {
+    const textModes = Array.from(new Set(typed.map((r) => r.text_mode)));
+    const predLens = Array.from(new Set(typed.map((r) => r.pred_len))).sort((a, b) => a - b);
+    const series = predLens.map((pl) => ({
+      name: `pred_len=${pl}`,
+      type: "bar" as const,
+      data: textModes.map((tm) => {
+        const row = typed.find((r) => r.text_mode === tm && r.pred_len === pl);
+        return row?.[metric] ?? null;
+      }),
+    }));
+    return {
+      ...baseOption(),
+      title: { text: `${metric} · Multimodal Ablation (by text_mode)`, left: "center", top: 0, textStyle: { color: TEXT_COLOR, fontSize: 16, fontWeight: 600 } },
+      legend: { ...baseOption().legend, data: series.map((s) => s.name), top: 30 },
+      xAxis: { ...baseAxis(), type: "category", data: textModes, name: "text_mode" },
+      yAxis: { ...baseAxis(), type: "value", name: metric },
+      series,
+    };
+  }
+  // Default: model+dataset
   const models = Array.from(new Set(typed.map((r) => r.model)));
   const datasets = Array.from(new Set(typed.map((r) => r.dataset)));
   const series = datasets.map((ds) => ({
@@ -123,7 +156,7 @@ function buildBar(data: AnyResultRow[], metric: MetricName): EChartsOption {
   };
 }
 
-function buildLine(data: AnyResultRow[], metric: MetricName): EChartsOption {
+function buildLine(data: AnyResultRow[], metric: MetricName, groupBy: GroupBy = "model+dataset"): EChartsOption {
   const typed = data as any[];
   if (typed.length === 0) return emptyOption("无数据", "当前筛选条件无匹配数据");
   const ablation = isAblationData(data);
@@ -151,6 +184,32 @@ function buildLine(data: AnyResultRow[], metric: MetricName): EChartsOption {
       series,
     };
   }
+  // text_mode+pred_len grouping: x = text_mode, series = pred_len.
+  // Used by Line 3 (multimodal ablation).
+  if (groupBy === "text_mode+pred_len") {
+    const textModes = Array.from(new Set(typed.map((r) => r.text_mode)));
+    const predLens = Array.from(new Set(typed.map((r) => r.pred_len))).sort((a, b) => a - b);
+    const series = predLens.map((pl) => ({
+      name: `pred_len=${pl}`,
+      type: "line" as const,
+      smooth: true,
+      symbolSize: 8,
+      lineStyle: { width: 2.5 },
+      data: textModes.map((tm) => {
+        const row = typed.find((r) => r.text_mode === tm && r.pred_len === pl);
+        return row?.[metric] ?? null;
+      }),
+    }));
+    return {
+      ...baseOption(),
+      title: { text: `${metric} · Multimodal Ablation (text_mode × pred_len)`, left: "center", top: 0, textStyle: { color: TEXT_COLOR, fontSize: 16, fontWeight: 600 } },
+      legend: { ...baseOption().legend, data: series.map((s) => s.name), top: 30 },
+      xAxis: { ...baseAxis(), type: "category", data: textModes, name: "text_mode" },
+      yAxis: { ...baseAxis(), type: "value", name: metric },
+      series,
+    };
+  }
+  // Default: model+dataset, x = pred_len, series = model
   const models = Array.from(new Set(typed.map((r) => r.model)));
   const predLens = Array.from(new Set(typed.map((r) => r.pred_len))).sort((a, b) => a - b);
   const series = models.map((m) => ({
@@ -246,7 +305,7 @@ function buildRadar(data: AnyResultRow[], metric: MetricName): EChartsOption {
   };
 }
 
-function buildHeatmap(data: AnyResultRow[], metric: MetricName): EChartsOption {
+function buildHeatmap(data: AnyResultRow[], metric: MetricName, groupBy: GroupBy = "model+dataset"): EChartsOption {
   const typed = data as any[];
   if (typed.length === 0) return emptyOption("无数据", "当前筛选条件无匹配数据");
   const ablation = isAblationData(data);
@@ -289,6 +348,42 @@ function buildHeatmap(data: AnyResultRow[], metric: MetricName): EChartsOption {
           emphasis: { itemStyle: { shadowBlur: 10, shadowColor: "rgba(0,0,0,0.2)" } },
         },
       ],
+    };
+  }
+  // text_mode+pred_len grouping: y = text_mode, x = pred_len.
+  // Used by Line 3 (multimodal ablation) — gives an at-a-glance view
+  // of which text_mode performs best at which horizon.
+  if (groupBy === "text_mode+pred_len") {
+    const textModes = Array.from(new Set(typed.map((r) => r.text_mode)));
+    const predLens = Array.from(new Set(typed.map((r) => r.pred_len))).sort((a, b) => a - b);
+    const matrix: [number, number, number][] = [];
+    for (let i = 0; i < textModes.length; i++) {
+      for (let j = 0; j < predLens.length; j++) {
+        const row = typed.find((r) => r.text_mode === textModes[i] && r.pred_len === predLens[j]);
+        const v = row?.[metric];
+        matrix.push([j, i, v !== undefined && v !== null ? Number(v) : NaN]);
+      }
+    }
+    const values = matrix.map((m) => m[2]).filter((v) => !Number.isNaN(v));
+    const minV = values.length ? Math.min(...values) : 0;
+    const maxV = values.length ? Math.max(...values) : 1;
+    return {
+      ...baseOption(),
+      title: { text: `${metric} Heatmap (text_mode × pred_len)`, left: "center", top: 0, textStyle: { color: TEXT_COLOR, fontSize: 16, fontWeight: 600 } },
+      tooltip: { position: "top", backgroundColor: "rgba(255, 255, 255, 0.98)", borderColor: "#b8bcc8", textStyle: { color: TEXT_COLOR, fontFamily: BASE_FONT } },
+      grid: { left: 110, right: 30, top: 60, bottom: 60 },
+      xAxis: { ...baseAxis(), type: "category", data: predLens.map(String), name: "pred_len" },
+      yAxis: { ...baseAxis(), type: "category", data: textModes, name: "text_mode" },
+      visualMap: {
+        min: minV, max: maxV, calculable: true, orient: "vertical", right: 0, top: "center",
+        inRange: { color: ["#10B981", "#FFD700", "#F43F5E"] },
+        textStyle: { color: TEXT_COLOR, fontFamily: BASE_FONT },
+      },
+      series: [{
+        type: "heatmap", data: matrix,
+        label: { show: true, color: TEXT_COLOR, fontFamily: BASE_FONT, fontSize: 11, formatter: (p: any) => Number(p.value[2]).toFixed(3) },
+        emphasis: { itemStyle: { shadowBlur: 10, shadowColor: "rgba(0,0,0,0.2)" } },
+      }],
     };
   }
   const models = Array.from(new Set(typed.map((r) => r.model)));
@@ -389,7 +484,7 @@ function buildPareto(data: AnyResultRow[], metric: MetricName): EChartsOption {
   };
 }
 
-function buildBox(data: AnyResultRow[], metric: MetricName): EChartsOption {
+function buildBox(data: AnyResultRow[], metric: MetricName, groupBy: GroupBy = "model+dataset"): EChartsOption {
   const typed = data as any[];
   if (typed.length === 0) return emptyOption("无数据", "当前筛选条件无匹配数据");
   const ablation = isAblationData(data);
@@ -417,6 +512,30 @@ function buildBox(data: AnyResultRow[], metric: MetricName): EChartsOption {
           itemStyle: { color: "rgba(108, 99, 255, 0.5)", borderColor: "#6c63ff" },
         },
       ],
+    };
+  }
+  // text_mode grouping: one box per text_mode (Line 3 multimodal ablation).
+  if (groupBy === "text_mode+pred_len") {
+    const textModes = Array.from(new Set(typed.map((r) => r.text_mode)));
+    const boxData = textModes.map((tm) => {
+      const values = typed.filter((r) => r.text_mode === tm).map((r) => r[metric]).filter((v) => v != null) as number[];
+      if (values.length === 0) return [0, 0, 0, 0, 0];
+      const sorted = [...values].sort((a, b) => a - b);
+      const q = (p: number) => sorted[Math.floor((sorted.length - 1) * p)] ?? 0;
+      return [sorted[0], q(0.25), q(0.5), q(0.75), sorted[sorted.length - 1]];
+    });
+    return {
+      ...baseOption(),
+      title: { text: `${metric} Distribution by text_mode`, left: "center", top: 0, textStyle: { color: TEXT_COLOR, fontSize: 16, fontWeight: 600 } },
+      tooltip: { trigger: "item", backgroundColor: "rgba(255, 255, 255, 0.98)", borderColor: "#b8bcc8", textStyle: { color: TEXT_COLOR, fontFamily: BASE_FONT } },
+      grid: { left: 70, right: 30, top: 50, bottom: 50 },
+      xAxis: { ...baseAxis(), type: "category", data: textModes },
+      yAxis: { ...baseAxis(), type: "value", name: metric },
+      series: [{
+        type: "boxplot",
+        data: boxData,
+        itemStyle: { color: "rgba(108, 99, 255, 0.5)", borderColor: "#6c63ff" },
+      }],
     };
   }
   const models = Array.from(new Set(typed.map((r) => r.model)));
@@ -516,33 +635,44 @@ function buildParallel(data: AnyResultRow[], metric: MetricName): EChartsOption 
 // Public dispatcher
 // -----------------------------------------------------------------
 
+/**
+ * How to group rows into chart x/series axes.
+ *   - "model+dataset"      (default): x = models, series = datasets
+ *   - "text_mode+pred_len"           : x = text_mode, series = pred_len
+ *                                       (for Line 3 multimodal ablation)
+ *   - "ablation+setting"             : x = setting, series = ablation group
+ *                                       (for Line 4/5 module ablation)
+ */
+export type GroupBy = "model+dataset" | "text_mode+pred_len" | "ablation+setting";
+
 export function buildChartOption(
   kind: string,
   data: AnyResultRow[],
-  metric: MetricName
+  metric: MetricName,
+  groupBy: GroupBy = "model+dataset"
 ): EChartsOption {
   const isAblation = isAblationData(data);
 
   switch (kind) {
     case "bar":
-      return buildBar(data, metric);
+      return buildBar(data, metric, groupBy);
     case "line":
-      return buildLine(data, metric);
+      return buildLine(data, metric, groupBy);
     case "radar":
       // Radar requires model aggregation — not meaningful for ablation
       if (isAblation) return emptyOption("雷达图不适用于消融", "请选择其他图表（瀑布/柱/线/热力/箱）");
       return buildRadar(data, metric);
     case "heatmap":
-      return buildHeatmap(data, metric);
+      return buildHeatmap(data, metric, groupBy);
     case "pareto":
       // Pareto requires infer time — not in ablation data
       if (isAblation) return emptyOption("帕累托图不适用于消融", "请选择其他图表");
       return buildPareto(data, metric);
     case "box":
-      return buildBox(data, metric);
+      return buildBox(data, metric, groupBy);
     case "waterfall":
       if (isAblation) return buildWaterfall(data);
-      return emptyOption("需要消融数据", "请选择 Line 4 消融实验");
+      return emptyOption("需要消融数据", "请选择 Line 4/5 消融实验");
     case "parallel":
       // Parallel requires efficiency metrics
       if (isAblation) return emptyOption("平行坐标不适用于消融", "请选择其他图表");

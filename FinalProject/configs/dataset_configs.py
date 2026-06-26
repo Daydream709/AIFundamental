@@ -39,6 +39,7 @@ def get_dataset_config(dataset_name: str, seq_len: int = 96, pred_len: int = 96)
             enc_in=6, dec_in=6, c_out=6,
             seq_len=seq_len, pred_len=pred_len, label_len=seq_len // 2,
             use_text=True,
+            text_dim=128,  # v2.1: 实际 cache 文件是 128 维 (sentence-transformers MiniLM)
             # 文本模态说明:
             # - report: 环境报告 (宏观政策/年度总结, ~156条)
             # - search: 相关搜索摘要 (公众关注度, ~2,272条)

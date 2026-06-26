@@ -2,21 +2,18 @@
 Train Line 4a: KAN-iTransformer Ablation (High-Performance)
 ============================================================
 
-Disables each of the 5 KAN-iTransformer modules in turn to measure
+Disables each of the 4 KAN-iTransformer modules in turn to measure
 its individual contribution. The baseline (A0) is the full model.
 
-  Model:    KANiTransformer (v2.0: B-spline KAN + 5 modules)
+  Model:    KANiTransformer (B-spline KAN + 4 modules)
   Datasets: ETTm2, Electricity, Environment (low/mid/high dim)
-  Settings (5): A0 baseline + A1-A4 = remove one module each
-    A0 - 完整 (full: KAN + CFD + 预训练 + 概率输出 + RevIN + 模型仲裁)
+  Settings (4): A0 baseline + A1-A3 = remove one module each
+    A0 - 完整 (full: KAN + CFD + 概率输出 + RevIN + 模型仲裁)
     A1 - w/o CFD (cascade frequency decomp)        --use_cfd=False
-    A2 - w/o 预训练 (masked reconstruction)         --use_masked_pretrain=False
-    A3 - w/o 概率输出 (use MSE instead of GaussianNLL) --use_probabilistic=False
-    A4 - w/o RevIN (use simple instance norm)       --use_revin=False
+    A2 - w/o 概率输出 (use MSE instead of GaussianNLL) --use_probabilistic=False
+    A3 - w/o RevIN (use simple instance norm)       --use_revin=False
 
-  注: v2.0 KAN 模型本身不带"关掉 KAN 层"或"关掉模型仲裁"的开关 (那是 v2.1 加的),
-      所以 A5(关掉 KAN) 和 A6(关掉仲裁) 在 v2.0 框架下需修改模型代码, 此处省略。
-  Total:     5 × 3 × 1 = 15 runs (pred_len=96, by default)
+  Total:     4 × 3 × 1 = 12 runs (pred_len=96, by default)
 
 Output files:
   - results/ablation_kan_{ts}.csv  (per-run, with ablation+setting columns)
@@ -53,17 +50,16 @@ DATASETS = ["ETTm2", "Electricity", "Environment"]
 SEQ_LEN = 96
 DEFAULT_PRED_LEN = 96  # ablation 默认只跑一个 pred_len (耗时控制)
 
-# 5 个消融设置 — v2.0 KAN-iTransformer 的 5 大模块
+# 4 个消融设置 — KAN-iTransformer 的 4 大模块
 # 每个对应关闭一个核心模块的 config flag
 KAN_ABLATION_SETTINGS = [
     # (setting_label, extra_config_to_disable_module)
     ("A0 - 完整", {}),  # baseline
     ("A1 - w/o CFD", {"use_cfd": False}),
-    ("A2 - w/o 预训练", {"use_masked_pretrain": False}),
-    ("A3 - w/o 概率输出", {"use_probabilistic": False}),
-    ("A4 - w/o RevIN", {"use_revin": False}),
+    ("A2 - w/o 概率输出", {"use_probabilistic": False}),
+    ("A3 - w/o RevIN", {"use_revin": False}),
 ]
-KAN_GROUP_NAME = "KAN 5 Modules"  # 同步到 viz-frontend/src/data/lines.ts KAN_ABLATION_GROUPS
+KAN_GROUP_NAME = "KAN 4 Modules"  # 同步到 viz-frontend/src/data/lines.ts KAN_ABLATION_GROUPS
 
 
 def main():

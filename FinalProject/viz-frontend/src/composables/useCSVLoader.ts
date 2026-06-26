@@ -87,6 +87,20 @@ export async function loadLineEfficiency(
   return loadCSV<EfficiencyRow>(`/data/efficiency/line${line}_latest.csv`);
 }
 
+/** Load the v3 cross-architecture Params/FLOPs summary (7 models × 4 datasets).
+ *  Produced by scripts/measure_v3*.py; supersedes the old efficiency_summary.csv. */
+export async function loadFlopsParamsV3(): Promise<EfficiencyRow[]> {
+  return loadCSV<EfficiencyRow>(`/data/efficiency/flops_params_v3.csv`);
+}
+
+/** Load the canonical Line 3 multimodal results (SparseTSF + 4 text modes).
+ *  This is the v2.1.1 "fixed" multimodal data; the older line3_latest.csv
+ *  contains PatchTST/Mamba runs where the training loop discarded the
+ *  text batch (see docs/multimodal-bug-diagnosis.md). */
+export async function loadLine3SparseTSF(): Promise<ResultRow[]> {
+  return loadCSV<ResultRow>(`/data/line3_sparsetsf_latest.csv`);
+}
+
 /** Load KAN ablation latest data */
 export async function loadAblationKan(): Promise<AblationRow[]> {
   return loadCSV<AblationRow>("/data/ablation_kan_latest.csv");
@@ -134,10 +148,12 @@ export type FileStatus = Record<string, "ok" | "missing" | "empty">;
 const TRACKED_FILES: Array<[string, string]> = [
   ["line1", "/data/line1_latest.csv"],
   ["line2", "/data/line2_latest.csv"],
-  ["line3", "/data/line3_latest.csv"],
+  ["line3_sparsetsf", "/data/line3_sparsetsf_latest.csv"],
   ["efficiency/line1", "/data/efficiency/line1_latest.csv"],
   ["efficiency/line2", "/data/efficiency/line2_latest.csv"],
   ["efficiency/line3", "/data/efficiency/line3_latest.csv"],
+  ["efficiency/line3_sparsetsf", "/data/efficiency/line3_sparsetsf_latest.csv"],
+  ["efficiency/flops_v3", "/data/efficiency/flops_params_v3.csv"],
   ["ablation_kan", "/data/ablation_kan_latest.csv"],
   ["ablation_lite", "/data/ablation_lite_latest.csv"],
 ];

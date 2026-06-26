@@ -59,45 +59,57 @@
       />
     </FilterBar>
 
-    <!-- KPI cards -->
-    <div class="kpi-row">
-      <KPICard
-        :title="`Best ${filters.metric}`"
-        :value="kpiBestValue"
-        :sub="kpiBestModel"
-        icon="🏆"
-      />
-      <KPICard
-        :title="`Avg ${filters.metric}`"
-        :value="kpiAvgValue"
-        icon="📐"
-      />
-      <KPICard title="Runs" :value="String(filteredData.length)" :sub="`${nModels} models`" icon="🧪" />
-      <KPICard title="Datasets" :value="String(nDatasets)" icon="📚" />
+    <!-- BUGFIX: show a centered loading spinner while the data store
+         is still loading. Without this the page renders with 0 rows
+         and the user sees the EmptyState ("数据尚未生成") right after
+         navigation, which looks like the page is "broken" / "blank". -->
+    <div v-if="!dataStore.isReady" class="page-loading">
+      <n-spin size="large" />
+      <p>正在加载实验数据…</p>
     </div>
 
-    <!-- Chart -->
-    <EChartWrapper
-      v-if="hasData"
-      :option="chartOption"
-      :min-height="460"
-      :empty-message="'当前筛选无数据 — 调整侧边栏的过滤器'"
-    />
+    <template v-else>
+      <!-- KPI cards -->
+      <div class="kpi-row">
+        <KPICard
+          :title="`Best ${filters.metric}`"
+          :value="kpiBestValue"
+          :sub="kpiBestModel"
+          icon="🏆"
+        />
+        <KPICard
+          :title="`Avg ${filters.metric}`"
+          :value="kpiAvgValue"
+          icon="📐"
+        />
+        <KPICard title="Runs" :value="String(filteredData.length)" :sub="`${nModels} models`" icon="🧪" />
+        <KPICard title="Datasets" :value="String(nDatasets)" icon="📚" />
+      </div>
 
-    <EmptyState
-      v-else
-      title="数据尚未生成"
-      :message="emptyMessage"
-      icon="📋"
-    />
+      <!-- Chart -->
+      <EChartWrapper
+        v-if="hasData"
+        :option="chartOption"
+        :min-height="460"
+        :empty-message="'当前筛选无数据 — 调整侧边栏的过滤器'"
+      />
 
-    <!-- Raw data table -->
-    <ResultTable v-if="hasData" :rows="filteredData" />
+      <EmptyState
+        v-else
+        title="数据尚未生成"
+        :message="emptyMessage"
+        icon="📋"
+      />
+
+      <!-- Raw data table -->
+      <ResultTable v-if="hasData" :rows="filteredData" />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, watch } from "vue";
+import { NSpin } from "naive-ui";
 import { useDataStore } from "@/stores/data";
 import { useFiltersStore } from "@/stores/filters";
 import { LINES } from "@/data/lines";
@@ -119,6 +131,9 @@ const filters = useFiltersStore();
 
 onMounted(async () => {
   filters.resetForLine(props.line.number);
+  // BUGFIX: previously the await was missing — loadAll() was fired in
+  // the background and the page would render with 0 rows on the first
+  // frame (showing EmptyState). Now we block until the store is ready.
   await dataStore.loadAll();
 });
 
@@ -297,8 +312,16 @@ const kpiAvgValue = computed(() => {
   return formatMetric(m, vals.reduce((s, v) => s + v, 0) / vals.length);
 });
 
-// Chart option
-const chartOption = computed(() => buildChartOption(filters.chartType, filteredData.value, filters.metric));
+// Chart option. groupBy is read from the line definition so each line
+// uses the right comparison axis (Line 3: text_mode × pred_len; Line 4/5:
+// ablation × setting; Line 1/2: model × dataset). Without this, single-
+// model lines (Line 3) collapse to 1 bar/line and look broken.
+const chartOption = computed(() => buildChartOption(
+  filters.chartType,
+  filteredData.value,
+  filters.metric,
+  props.line.chartGroupBy ?? "model+dataset"
+));
 
 // Empty state message
 const emptyMessage = computed(() => {
@@ -340,5 +363,18 @@ const emptyMessage = computed(() => {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+/* BUGFIX: loading state shown while data is fetching. */
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 360px;
+  padding: 2rem;
+  color: var(--color-neu-text-muted);
+  font-size: 0.95rem;
 }
 </style>

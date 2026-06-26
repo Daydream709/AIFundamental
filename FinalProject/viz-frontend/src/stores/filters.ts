@@ -22,30 +22,40 @@ export const useFiltersStore = defineStore("filters", () => {
     "report",
     "search",
     "both_concat",
-    "both_gating",
   ]);
   // Ablation group is single-select: null means "all groups (compare them all)".
   // Storage key bumped from f:ablationGroups to f:ablationGroup.
   const selectedAblationGroup = useStorage<string | null>("f:ablationGroup", null);
 
+  // One-time migration: drop stale `both_gating` mode from persisted
+  // textModes (v2.1.1 no longer uses it; was a placeholder that produced
+  // identical results in the old PatchTST/Mamba multimodal bug).
+  if (textModes.value.includes("both_gating")) {
+    textModes.value = textModes.value.filter((m) => m !== "both_gating");
+  }
+
   function resetForLine(line: number) {
-    // Always clear pred_len on line change — different lines have different
-    // valid horizons (e.g. Line 3 has only [96, 192]; Line 1/2/4 have
-    // [96, 192, 336, 720]). A stale 720 from Line 1 would silently filter
-    // out all rows on Line 3.
+    // BUGFIX: previously only pred_len was reset on line change, which let
+    // stale filter state (model/dataset/textModes/ablationGroup) from a
+    // previous line silently filter the new line to 0 rows → blank page.
+    // Now we reset every cross-page slice on line change. (chartType and
+    // metric are user preferences and are preserved.)
+    selectedModels.value = [];
+    selectedDatasets.value = [];
     selectedPredLen.value = null;
+    textModes.value = [];
+    selectedAblationGroup.value = null;
+
     if (line === 3) {
-      // Multimodal: keep text mode filter visible
-      if (textModes.value.length === 0) {
-        textModes.value = ["baseline", "report", "search", "both_concat", "both_gating"];
-      }
+      // Line 3 is the text-mode ablation (SparseTSF × 4 modes). Pre-select
+      // all text modes so the default view shows the full comparison.
+      textModes.value = ["baseline", "report", "search", "both_concat"];
     }
     if (line === 4 || line === 5) {
       // Ablation pages (Line 4a KAN, Line 4b Lite): default to waterfall
       // chart (only chart that works with ablation rows; other charts need
       // model/dataset columns)
       chartType.value = "waterfall";
-      selectedAblationGroup.value = null;
     }
   }
 
@@ -55,7 +65,7 @@ export const useFiltersStore = defineStore("filters", () => {
     selectedPredLen.value = null;
     metric.value = "MSE";
     chartType.value = "bar";
-    textModes.value = ["baseline", "report", "search", "both_concat", "both_gating"];
+    textModes.value = ["baseline", "report", "search", "both_concat"];
     selectedAblationGroup.value = null;
   }
 

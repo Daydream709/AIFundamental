@@ -60,8 +60,6 @@ class BaseConfig:
     use_wavelet: bool = False         # ★ 创新优化: 用 Wavelet 替代 FFT (适合非平稳信号)
     use_revin: bool = True            # 可逆实例归一化
     use_probabilistic: bool = True    # 概率输出 (GaussianNLL)
-    use_masked_pretrain: bool = False # 掩码重建自监督预训练
-    mask_ratio: float = 0.15          # 掩码率
     use_model_arbitration: bool = False  # 模型仲裁集成
 
     # ==================== Lite-SparseNet 专用 ====================

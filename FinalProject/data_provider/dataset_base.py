@@ -135,7 +135,10 @@ class BaseDataset(Dataset):
 
         # 多模态扩展
         if self.text_embeds_slice is not None:
-            text = self.text_embeds_slice[s_begin:s_end].mean(axis=0)
+            # ★ v2.1.1 修复: 用窗口末尾的嵌入 (最近时间步) 而非 mean pooling
+            # mean pooling 会把稀疏 (search) vs 密集 (concat) 的差异压平 ~60x
+            # 选用末尾 s_end-1 与时序预测目标对齐 (pred 紧接在窗口后)
+            text = self.text_embeds_slice[s_end - 1]
             result = result + (torch.FloatTensor(text),)
         else:
             result = result + (torch.zeros(1),)  # placeholder

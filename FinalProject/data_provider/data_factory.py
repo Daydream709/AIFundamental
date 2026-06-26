@@ -37,7 +37,8 @@ def data_provider(config, flag):
 
     # 设置多模态数据（如果需要）
     if config.use_text or config.use_image or config.use_satellite:
-        text_mode = getattr(config, 'text_fusion_mode', 'concat')
+        # 兼容两种命名: text_fusion_mode (v2.0 旧) 和 text_mode (v2.1 新)
+        text_mode = getattr(config, 'text_mode', None) or getattr(config, 'text_fusion_mode', 'concat')
         use_sat = getattr(config, 'use_satellite', False)
         _attach_multimodal(dataset, config, text_mode=text_mode, use_satellite=use_sat)
 
@@ -49,9 +50,9 @@ def data_provider(config, flag):
         dataset,
         batch_size=batch_size,
         shuffle=shuffle_flag,
-        num_workers=config.num_workers,
+        num_workers=0,  # 修复 MPS/multiprocessing 兼容性问题 (Python 3.13 + macOS)
         drop_last=drop_last,
-        pin_memory=True,
+        pin_memory=False,  # MPS 不需要 pin_memory
     )
 
     return data_loader

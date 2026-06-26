@@ -1,0 +1,50 @@
+[
+  {
+    "model": "SparseTSF",
+    "params": {
+      "seq_len": 96,
+      "pred_len": 96,
+      "learning_rate": 0.001,
+      "batch_size": 64,
+      "train_epochs": 30,
+      "patience": 5,
+      "period_len": 12
+    },
+    "mse": "0.10869362",
+    "mae": "0.2298709",
+    "time_s": 124.70685005187988,
+    "status": "success"
+  },
+  {
+    "model": "SparseTSF",
+    "params": {
+      "seq_len": 96,
+      "pred_len": 96,
+      "learning_rate": 0.001,
+      "batch_size": 64,
+      "train_epochs": 30,
+      "patience": 5,
+      "period_len": 24
+    },
+    "mse": "0.11353755",
+    "mae": "0.23717564",
+    "time_s": 218.7195110321045,
+    "status": "success"
+  },
+  {
+    "model": "SparseTSF",
+    "params": {
+      "seq_len": 96,
+      "pred_len": 96,
+      "learning_rate": 0.001,
+      "batch_size": 64,
+      "train_epochs": 30,
+      "patience": 5,
+      "period_len": 48
+    },
+    "mse": "0.12650247",
+    "mae": "0.2531101",
+    "time_s": 177.2813367843628,
+    "status": "success"
+  }
+]

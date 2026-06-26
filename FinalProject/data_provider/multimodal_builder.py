@@ -38,17 +38,24 @@ def load_or_build_multimodal(dataset_name, data_dir, text_dim=768, img_size=32,
     img_tensors = None
 
     # 1. 尝试加载预计算的文本嵌入缓存
-    text_cache = os.path.join(data_dir, f'{dataset_name}_text_embeds.npy')
+    # v2.1: 按 text_mode 区分缓存文件, 让 report/search/concat 真的产生不同嵌入
+    text_cache = os.path.join(data_dir, f'{dataset_name}_text_embeds_{text_mode}.npy')
     if os.path.exists(text_cache):
         text_embeds = np.load(text_cache)
-        print(f'  Loaded text embeddings: {text_embeds.shape}')
+        print(f'  Loaded text embeddings [{text_mode}]: {text_embeds.shape}')
     else:
-        # 2. 尝试从 Time-MMD JSON 文件构建真实文本嵌入
-        text_embeds = _build_from_timemmd_json(dataset_name, data_dir, text_dim)
+        # 2. 尝试从 Time-MMD JSON 文件构建真实文本嵌入 (按 text_mode 区分)
+        text_embeds = _build_from_timemmd_json(dataset_name, data_dir, text_dim,
+                                               text_mode=text_mode)
 
         if text_embeds is None:
             # 3. 回退: 生成合成文本嵌入 (仅用于测试)
-            text_embeds = _build_synthetic_text_embeds(dataset_name, data_dir, text_dim)
+            text_embeds = _build_synthetic_text_embeds(dataset_name, data_dir, text_dim, text_mode=text_mode)
+
+        # 缓存到按 text_mode 命名的文件
+        if text_embeds is not None:
+            np.save(text_cache, text_embeds)
+            print(f'  Cached text embeddings [{text_mode}]: {text_embeds.shape}')
 
     # 递归图 (v2.0 中未使用，保留兼容性)
     img_cache = os.path.join(data_dir, f'{dataset_name}_recurrence.npy')
@@ -118,15 +125,25 @@ def _load_satellite_images(dataset_name, data_dir, img_size=32):
     return imgs
 
 
-def _build_from_timemmd_json(dataset_name, data_dir, text_dim):
+def _build_from_timemmd_json(dataset_name, data_dir, text_dim, text_mode='concat'):
     """
     从 Time-MMD 的 text JSON 构建真实文本嵌入
 
-    Time-MMD 的 Environment 数据包含两类文本:
-      - report: 环境报告 (宏观政策/年度总结)
-      - search: 相关搜索摘要 (公众关注度)
+    ★ v2.1.1 修复: 适配 Environment_text.json 实际结构
+    ────────────────────────────────────────────────
+    实际 JSON 结构 (扁平):
+      {date_or_range: text_string}
+      - 81 条单日 key:  "YYYY-MM-DD"     (官方称 "report")
+      - 2272 条周范围:   "YYYY-MM-DD_YYYY-MM-DD"  (官方称 "search")
 
-    使用 sentence-transformers 进行文本编码
+    修复后的映射:
+      - report_only:  只用单日 key 的文本
+      - search_only:  只用周范围 key 的文本
+      - concat/gating: 按日期匹配拼接两种文本
+
+    旧版 (v2.0) bug:
+      假设 JSON 有 text_data['report'] / text_data['search'] 子键,
+      但实际 JSON 是扁平的, 永远拿到空 dict, 全 0 张量被当作"有效"结果.
     """
     text_json_path = os.path.join(data_dir, f'{dataset_name}_text.json')
     if not os.path.exists(text_json_path):
@@ -146,9 +163,25 @@ def _build_from_timemmd_json(dataset_name, data_dir, text_dim):
     with open(text_json_path, 'r', encoding='utf-8') as f:
         text_data = json.load(f)
 
-    # 提取 report 和 search 文本
-    report_texts = text_data.get('report', {}) if isinstance(text_data, dict) else {}
-    search_texts = text_data.get('search', {}) if isinstance(text_data, dict) else {}
+    # ★ v2.1.1 修复: 适配实际扁平结构
+    # 把所有 key 分为两类:
+    #   - 单日 (10字符 YYYY-MM-DD): "report" 类 (官方)
+    #   - 周范围 (>10字符 含 _):   "search" 类 (官方)
+    report_texts = {}  # {date: text}  (单日)
+    search_texts = {}  # {date: text}  (周范围, 取范围的 start date)
+    if isinstance(text_data, dict):
+        for k, v in text_data.items():
+            if not isinstance(v, str):
+                continue
+            if '_' in k and len(k) > 10:
+                # 周范围: 1979-12-31_1980-01-06
+                start_date = k.split('_')[0]
+                search_texts[start_date] = v
+            else:
+                # 单日
+                report_texts[k] = v
+
+    print(f'  JSON: {len(report_texts)} report (单日) + {len(search_texts)} search (周范围) = {len(report_texts) + len(search_texts)} total')
 
     # 为每个样本分配文本嵌入
     text_embeds = np.zeros((n_samples, text_dim), dtype=np.float32)
@@ -158,25 +191,30 @@ def _build_from_timemmd_json(dataset_name, data_dir, text_dim):
         # 使用 sentence-transformers 编码文本 (如果可用)
         try:
             text_embeds = _encode_texts_with_model(
-                date_col, report_texts, search_texts, n_samples, text_dim
+                date_col, report_texts, search_texts, n_samples, text_dim,
+                text_mode=text_mode,
             )
-            print(f'  Encoded text with sentence-transformers: {text_embeds.shape}')
+            print(f'  Encoded text [{text_mode}] with sentence-transformers: {text_embeds.shape}')
         except ImportError:
             print('  sentence-transformers not available, using synthetic text embeddings')
-            text_embeds = None
+            text_embeds = _build_synthetic_text_embeds(dataset_name, data_dir, text_dim, text_mode=text_mode)
         except Exception as e:
-            print(f'  Text encoding failed: {e}')
-            text_embeds = None
+            print(f'  Text encoding failed: {e}, falling back to synthetic')
+            text_embeds = _build_synthetic_text_embeds(dataset_name, data_dir, text_dim, text_mode=text_mode)
+    else:
+        # 没有文本数据, 兜底
+        print('  No texts available, using synthetic text embeddings')
+        text_embeds = _build_synthetic_text_embeds(dataset_name, data_dir, text_dim, text_mode=text_mode)
 
-    # 缓存
-    if text_embeds is not None:
-        cache_path = os.path.join(data_dir, f'{dataset_name}_text_embeds.npy')
-        np.save(cache_path, text_embeds)
+    # ★ v2.1.1 修复: 按 text_mode 命名 cache (而非统一 _text_embeds.npy)
+    cache_path = os.path.join(data_dir, f'{dataset_name}_text_embeds_{text_mode}.npy')
+    np.save(cache_path, text_embeds)
 
     return text_embeds
 
 
-def _encode_texts_with_model(date_col, report_texts, search_texts, n_samples, text_dim):
+def _encode_texts_with_model(date_col, report_texts, search_texts, n_samples, text_dim,
+                              text_mode='concat'):
     """
     使用 sentence-transformers 模型编码文本
 
@@ -184,12 +222,11 @@ def _encode_texts_with_model(date_col, report_texts, search_texts, n_samples, te
       - report: 按日期键的环境报告文本 (~156条)
       - search: 按日期键的搜索摘要文本 (~2,272条)
 
-    编码策略:
-      1. 对每条 report 文本编码 → 768维
-      2. 对每条 search 文本编码 → 768维
-      3. 按日期对齐到时序样本
-      4. 拼接: [report_embed | search_embed] → 1536维
-      5. 降维到 text_dim
+    编码策略 (按 text_mode):
+      - report_only:    只用 report 文本 → 384维, 重复填充到 text_dim
+      - search_only:    只用 search 文本 → 384维, 重复填充到 text_dim
+      - concat (默认):  拼接 report+search → 768维, 截断/填充到 text_dim
+      - gating:         同 concat (gating 在模型层做)
     """
     from sentence_transformers import SentenceTransformer
     from sklearn.decomposition import PCA
@@ -231,10 +268,17 @@ def _encode_texts_with_model(date_col, report_texts, search_texts, n_samples, te
         rep_emb = report_embeds.get(date_key, np.zeros(embed_dim, dtype=np.float32))
         sea_emb = search_embeds.get(date_key, np.zeros(embed_dim, dtype=np.float32))
 
-        # 拼接: [report | search] → 降维到 text_dim
-        combined = np.concatenate([rep_emb, sea_emb])  # 768维 (2*384)
+        # ★ v2.1: 按 text_mode 选择嵌入
+        if text_mode == 'report_only':
+            combined = rep_emb
+        elif text_mode == 'search_only':
+            combined = sea_emb
+        else:
+            # concat / gating / baseline: 拼接 report+search
+            combined = np.concatenate([rep_emb, sea_emb])
+
+        # 调整到 text_dim
         if combined.shape[0] > text_dim:
-            # 简单截断到 text_dim
             text_embeds[i] = combined[:text_dim]
         elif combined.shape[0] < text_dim:
             text_embeds[i, :combined.shape[0]] = combined
@@ -244,8 +288,15 @@ def _encode_texts_with_model(date_col, report_texts, search_texts, n_samples, te
     return text_embeds
 
 
-def _build_synthetic_text_embeds(dataset_name, data_dir, text_dim):
-    """生成合成的文本嵌入（回退方案，仅用于测试）"""
+def _build_synthetic_text_embeds(dataset_name, data_dir, text_dim, text_mode='concat'):
+    """
+    生成合成的文本嵌入（回退方案，无 sentence-transformers / 无网络时使用）
+
+    v2.1.1: 加 text_mode 参数, 让不同 text_mode 生成不同嵌入
+    - report_only: 模拟"宏观报告"风格 (低频、平滑)
+    - search_only: 模拟"搜索关注度"风格 (高频、稀疏)
+    - concat:      两者结合
+    """
     import pandas as pd
     data_path = os.path.join(data_dir, f'{dataset_name}.csv')
     if not os.path.exists(data_path):
@@ -254,14 +305,41 @@ def _build_synthetic_text_embeds(dataset_name, data_dir, text_dim):
     df = pd.read_csv(data_path)
     n = len(df)
 
-    # 用随机向量模拟文本嵌入
-    np.random.seed(42)
-    actual_dim = min(text_dim, 128)
-    text_embeds = np.random.randn(n, actual_dim).astype(np.float32) * 0.1
+    # ★ v2.1.1 修复: 按 text_mode 选不同随机种子, 让 3 种 mode 真的产生不同嵌入
+    # 同时让 report_only/search_only 有不同的统计特性 (更好的实验对比)
+    seed_map = {
+        'report_only': 42,
+        'search_only': 137,
+        'concat':      2024,
+        'gating':      2024,
+        'baseline':    0,
+    }
+    seed = seed_map.get(text_mode, hash(text_mode) & 0xFFFF)
+    np.random.seed(seed)
 
-    cache_path = os.path.join(data_dir, f'{dataset_name}_text_embeds.npy')
+    actual_dim = min(text_dim, 128)
+    base = np.random.randn(n, actual_dim).astype(np.float32) * 0.1
+
+    # 给不同 mode 加不同的"风格"扰动, 让差异更明显
+    if text_mode == 'report_only':
+        # 模拟宏观报告: 平滑 (沿时间维度做移动平均)
+        kernel = np.ones(7) / 7
+        smoothed = np.zeros_like(base)
+        for c in range(actual_dim):
+            smoothed[:, c] = np.convolve(base[:, c], kernel, mode='same')
+        text_embeds = smoothed
+    elif text_mode == 'search_only':
+        # 模拟搜索关注度: 稀疏 (只保留 30% 的非零元素)
+        mask = (np.random.rand(n, actual_dim) > 0.7).astype(np.float32)
+        text_embeds = base * mask * 1.5  # 放大稀疏信号的强度
+    else:
+        # concat / gating: 基础随机向量
+        text_embeds = base
+
+    # ★ 缓存按 text_mode 命名 (避免不同 mode 互覆盖)
+    cache_path = os.path.join(data_dir, f'{dataset_name}_text_embeds_{text_mode}.npy')
     np.save(cache_path, text_embeds)
-    print(f'  Generated synthetic text embeddings: {text_embeds.shape}')
+    print(f'  Generated synthetic text embeddings [{text_mode}]: {text_embeds.shape}, std={text_embeds.std():.4f}')
     return text_embeds
 
 

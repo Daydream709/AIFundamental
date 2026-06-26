@@ -57,12 +57,11 @@ Environment 与 Weather 都属于“环境/气象”领域，这是好事——*
 
 ### 4.1 自研高性能模型：KAN-iTransformer（冲刺精度上限）
 
-集成5大优化模块：
+集成4大优化模块：
 - **模块1（架构增强）** ：KAN层替换FFN + 级联频域分解（CFD）逐层剥离趋势/季节/残差。
-- **模块2（预训练策略）** ：掩码重建自监督任务（掩码率15%）。
-- **模块3（概率输出）** ：GaussianNLL 训练损失 + 共形预测（Conformal Prediction）输出95%置信区间。
-- **模块4（归一化）** ：RevIN（可逆实例归一化）。
-- **模块5（模型仲裁）** ：5维统计特征（谱熵/趋势强度/周期性/方差/自相关）+ 轻量MLP路由器，动态融合 KAN-iTransformer、PatchTST、Mamba 三者的预测。
+- **模块2（概率输出）** ：GaussianNLL 训练损失 + 共形预测（Conformal Prediction）输出95%置信区间。
+- **模块3（归一化）** ：RevIN（可逆实例归一化）。
+- **模块4（模型仲裁）** ：5维统计特征（谱熵/趋势强度/周期性/方差/自相关）+ 轻量MLP路由器，动态融合 KAN-iTransformer、PatchTST、Mamba 三者的预测。
 
 ### 4.2 自研轻量化模型：Lite-SparseNet（冲刺效率极限）
 

@@ -99,6 +99,27 @@ def main() -> None:
         dest = FRONTEND_DATA / "efficiency" / f"line{n}_latest.csv"
         total_rows += normalize_csv(eff, dest)
 
+    # === Line 3 SparseTSF multimodal (v2.1.1: real multimodal results) ===
+    # This file replaces the old PatchTST/Mamba line3 which had a training
+    # loop bug (see docs/multimodal-bug-diagnosis.md). The SparseTSF
+    # 4-mode run is the canonical multimodal result.
+    print()
+    print("Line 3 SparseTSF multimodal (canonical multimodal data):")
+    sparse_latest = RESULTS_DIR / "line3_sparsetsf_latest.csv"
+    if sparse_latest.exists():
+        total_rows += normalize_csv(sparse_latest, FRONTEND_DATA / "line3_sparsetsf_latest.csv")
+    sparse_eff = EFFICIENCY_DIR / "line3_sparsetsf_latest.csv"
+    if sparse_eff.exists():
+        total_rows += normalize_csv(sparse_eff, FRONTEND_DATA / "efficiency" / "line3_sparsetsf_latest.csv")
+
+    # === v3 efficiency summary (7 models × 4 datasets, the canonical
+    #     Params/FLOPs table for the project) ===
+    print()
+    print("v3 efficiency summary (7 models × 4 datasets):")
+    v3 = EFFICIENCY_DIR / "flops_params_summary_v3.csv"
+    if v3.exists():
+        total_rows += normalize_csv(v3, FRONTEND_DATA / "efficiency" / "flops_params_v3.csv")
+
     # === Per-line timestamped files (history) ===
     print()
     print("Per-line timestamped files (history):")
@@ -119,18 +140,17 @@ def main() -> None:
             dest = FRONTEND_DATA / "efficiency" / src.name
             total_rows += normalize_csv(src, dest)
 
-    # === Legacy files (kept for backward compat with old viz) ===
+    # === Cleanup: remove legacy files no longer in sync with current viz ===
+    # Old main_results.csv / efficiency_summary.csv / ablation_results.csv
+    # were the v1 single-file aggregation. The current viz uses per-line
+    # _latest.csv only. If a legacy file was copied in the past, remove it.
     print()
-    print("Legacy files (old viz compatibility):")
-    legacy = RESULTS_DIR / "main_results.csv"
-    if legacy.exists():
-        total_rows += normalize_csv(legacy, FRONTEND_DATA / "main_results.csv")
-    legacy_eff = EFFICIENCY_DIR / "flops_params_summary.csv"
-    if legacy_eff.exists():
-        total_rows += normalize_csv(legacy_eff, FRONTEND_DATA / "efficiency_summary.csv")
-    synth = RESULTS_DIR / "ablation_synthetic.csv"
-    if synth.exists():
-        total_rows += normalize_csv(synth, FRONTEND_DATA / "ablation_results.csv")
+    print("Cleanup: removing legacy aggregation files (no longer used):")
+    for legacy_name in ("main_results.csv", "efficiency_summary.csv", "ablation_results.csv"):
+        legacy_path = FRONTEND_DATA / legacy_name
+        if legacy_path.exists():
+            legacy_path.unlink()
+            print(f"  REMOVED: {legacy_name}")
 
     print()
     print("=" * 60)

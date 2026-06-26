@@ -1,16 +1,14 @@
 """
 KAN-iTransformer — 核心贡献1: 冲刺最高精度 (~120M参数)
 
-基于 iTransformer 倒置架构，集成5大优化模块:
+基于 iTransformer 倒置架构，集成4大优化模块:
   模块1: KAN层 (B-spline) 替换FFN + 级联频域分解 (CFD)
         逐层剥离趋势/季节/残差，交由不同KAN专家处理
-  模块2: 掩码重建自监督预训练 (mask_ratio=15%)
-        让模型学习数据内在表征，提升鲁棒性
-  模块3: 概率输出 (GaussianNLL) + 共形预测校准
+  模块2: 概率输出 (GaussianNLL) + 共形预测校准
         输出均值+方差，推理后95%置信区间
-  模块4: RevIN 可逆实例归一化
+  模块3: RevIN 可逆实例归一化
         消除训练-测试分布偏移
-  模块5: 模型仲裁 — 5维统计特征 + MLP路由器
+  模块4: 模型仲裁 — 5维统计特征 + MLP路由器
         动态融合 KAN-iTransformer / PatchTST / Mamba 预测
 """
 import torch
@@ -164,50 +162,6 @@ class KANCFDEncoderLayer(nn.Module):
 
 
 # ============================================================================
-# 模块2: 掩码重建预训练
-# ============================================================================
-
-class MaskedReconstructionHead(nn.Module):
-    """
-    掩码重建自监督任务头
-
-    在预训练阶段:
-    1. 随机掩码15%的输入时间步
-    2. 模型重建被掩码的部分
-    3. 损失 = MSE(重建, 原始)
-
-    正式训练时禁用 (use_masked_pretrain=False)
-    """
-
-    def __init__(self, d_model, c_out):
-        super().__init__()
-        self.reconstructor = nn.Sequential(
-            nn.Linear(d_model, d_model // 2),
-            nn.GELU(),
-            nn.Linear(d_model // 2, c_out),
-        )
-
-    def forward(self, x):
-        """
-        x: [B, C, d_model]
-        Returns: [B, C, c_out] (reconstructed values)
-        """
-        return self.reconstructor(x)
-
-
-def generate_mask(x, mask_ratio=0.15):
-    """
-    生成随机掩码
-    x: [B, H, C]
-    Returns: mask [B, H, C], masked_x [B, H, C]
-    """
-    B, H, C = x.shape
-    mask = (torch.rand(B, H, C, device=x.device) > mask_ratio).float()
-    masked_x = x * mask
-    return mask, masked_x
-
-
-# ============================================================================
 # 主模型: KAN-iTransformer
 # ============================================================================
 
@@ -233,7 +187,6 @@ class Model(nn.Module):
         self.use_cfd = getattr(configs, 'use_cfd', True)
         self.use_revin = getattr(configs, 'use_revin', True)
         self.use_probabilistic = getattr(configs, 'use_probabilistic', True)
-        self.use_masked_pretrain = getattr(configs, 'use_masked_pretrain', False)
         kan_grid_size = getattr(configs, 'kan_grid_size', 5)
         top_k = getattr(configs, 'top_k', 5)
 
@@ -294,10 +247,6 @@ class Model(nn.Module):
         else:
             self.projector = nn.Linear(self.d_model, self.pred_len)
 
-        # 模块2: 掩码重建头 (预训练用)
-        if self.use_masked_pretrain:
-            self.mask_head = MaskedReconstructionHead(self.d_model, self.seq_len)
-
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
         """
         x_enc: [B, H, C]
@@ -320,16 +269,8 @@ class Model(nn.Module):
             stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
             x_norm = (x_enc - means) / stdev
 
-        # 掩码重建 (预训练模式)
-        if self.use_masked_pretrain and self.training:
-            recon_mask, x_masked = generate_mask(x_norm, mask_ratio=0.15)
-            x_use = x_masked
-        else:
-            recon_mask = None
-            x_use = x_norm
-
         # 倒置嵌入: [B, H, C] → [B, C, d_model]
-        enc_out = self.embedding(x_use, None)
+        enc_out = self.embedding(x_norm, None)
 
         # 编码器层
         for layer in self.encoder:
@@ -360,49 +301,6 @@ class Model(nn.Module):
                 output = output * stdev + means
 
             return output
-
-    def pretrain_step(self, x_enc):
-        """
-        掩码重建预训练步骤
-        在不修改原有forward的情况下，允许外部调用
-        """
-        was_training = self.training
-        old_mask_flag = self.use_masked_pretrain
-        self.use_masked_pretrain = True
-        self.train()
-
-        B, H, C = x_enc.shape
-
-        if self.use_revin:
-            x_norm = self.revin(x_enc.permute(0, 2, 1), 'norm').permute(0, 2, 1)
-        else:
-            means = x_enc.mean(dim=1, keepdim=True).detach()
-            stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5).detach()
-            x_norm = (x_enc - means) / stdev
-
-        # 生成掩码
-        recon_mask = (torch.rand(B, H, C, device=x_enc.device) > 0.15).float()
-        x_masked = x_norm * recon_mask
-
-        # 嵌入 + 编码
-        enc_out = self.embedding(x_masked, None)
-        for layer in self.encoder:
-            enc_out, attn = layer(enc_out)
-
-        # 重建
-        reconstruction = self.mask_head(enc_out)  # [B, C, H]
-        reconstruction = reconstruction.permute(0, 2, 1)  # [B, H, C]
-
-        # 只对掩码位置计算损失
-        masked_positions = (recon_mask == 0).float()
-        se = (reconstruction - x_norm) ** 2
-        recon_loss = (se * masked_positions).sum() / (masked_positions.sum() + 1e-8)
-
-        self.use_masked_pretrain = old_mask_flag
-        if not was_training:
-            self.eval()
-
-        return recon_loss
 
     def predict_with_confidence(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
                                   conformal_predictor=None, alpha=0.05):

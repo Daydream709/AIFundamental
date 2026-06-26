@@ -62,15 +62,25 @@ class ExpTrain(ExpBasic):
     def _get_data(self, flag):
         return data_provider(self.config, flag)
 
-    def _forward_pass(self, model, x_enc, x_mark_enc, x_dec, x_mark_dec):
+    def _forward_pass(self, model, x_enc, x_mark_enc, x_dec, x_mark_dec,
+                      text_embed=None):
         """
         统一前向传播 — 处理标准输出和概率输出
+
+        Args:
+            text_embed: [B, text_dim] 或 None (多模态输入)
 
         Returns:
             pred: [B, F, C] (均值)
             logvar: [B, F, C] 或 None
         """
-        out = model(x_enc, x_mark_enc, x_dec, x_mark_dec)
+        # v2.1: 如果模型支持 text_embed 参数，传入多模态数据
+        try:
+            out = model(x_enc, x_mark_enc, x_dec, x_mark_dec,
+                        text_embed=text_embed)
+        except TypeError:
+            # 模型不支持 text_embed (PatchTST/Mamba 等)，回退到原签名
+            out = model(x_enc, x_mark_enc, x_dec, x_mark_dec)
 
         if isinstance(out, tuple):
             # 概率输出: (mean, logvar)
@@ -78,6 +88,27 @@ class ExpTrain(ExpBasic):
             return mean, logvar
         else:
             return out, None
+
+    @staticmethod
+    def _extract_text_embed(batch):
+        """
+        从 batch 中安全提取 text_embed。
+
+        dataset_base.__getitem__ 返回 6 个元素：
+          batch[0] x_enc, batch[1] x_y, batch[2] x_mark_enc,
+          batch[3] x_mark_y, batch[4] text (或 zeros(1) 占位符),
+          batch[5] img (或 zeros(1, 32, 32) 占位符)
+
+        占位符的特征: shape[-1] == 1 (text) 或 shape == (1, 32, 32) (img)
+        真实 text: shape == (B, text_dim=768)
+        """
+        if len(batch) < 5:
+            return None
+        text = batch[4]
+        # 占位符 shape=(B, 1), 真实 shape=(B, 768)
+        if text is None or text.shape[-1] <= 1:
+            return None
+        return text
 
     def train(self):
         """完整训练流程"""
@@ -122,6 +153,7 @@ class ExpTrain(ExpBasic):
         for batch in data_loader:
             batch = [b.to(self.device) for b in batch]
             x_enc, x_y, x_mark_enc, x_mark_y = batch[0], batch[1], batch[2], batch[3]
+            text_embed = self._extract_text_embed(batch)  # v2.1: 多模态
 
             x_dec = torch.zeros_like(x_y[:, -self.config.pred_len:, :])
             x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
@@ -131,7 +163,8 @@ class ExpTrain(ExpBasic):
 
             with autocast(self.device.type, dtype=self._amp_dtype, enabled=self._use_amp):
                 pred, logvar = self._forward_pass(
-                    self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
+                    self.model, x_enc, x_mark_enc, x_dec, x_mark_dec,
+                    text_embed=text_embed,
                 )
 
                 if logvar is not None and self.config.loss == 'GaussianNLL':
@@ -159,6 +192,7 @@ class ExpTrain(ExpBasic):
             for batch in data_loader:
                 batch = [b.to(self.device) for b in batch]
                 x_enc, x_y, x_mark_enc, x_mark_y = batch[0], batch[1], batch[2], batch[3]
+                text_embed = self._extract_text_embed(batch)  # v2.1
 
                 x_dec = torch.zeros_like(x_y[:, -self.config.pred_len:, :])
                 x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
@@ -166,7 +200,8 @@ class ExpTrain(ExpBasic):
 
                 with autocast(self.device.type, dtype=self._amp_dtype, enabled=self._use_amp):
                     pred, logvar = self._forward_pass(
-                        self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
+                        self.model, x_enc, x_mark_enc, x_dec, x_mark_dec,
+                        text_embed=text_embed,
                     )
 
                     if logvar is not None and self.config.loss == 'GaussianNLL':
@@ -192,13 +227,15 @@ class ExpTrain(ExpBasic):
             for batch in test_loader:
                 batch = [b.to(self.device) for b in batch]
                 x_enc, x_y, x_mark_enc, x_mark_y = batch[0], batch[1], batch[2], batch[3]
+                text_embed = self._extract_text_embed(batch)  # v2.1
 
                 x_dec = torch.zeros_like(x_y[:, -self.config.pred_len:, :])
                 x_mark_dec = x_mark_y[:, -self.config.pred_len:, :]
                 true = x_y[:, -self.config.pred_len:, :]
 
                 pred, _ = self._forward_pass(
-                    self.model, x_enc, x_mark_enc, x_dec, x_mark_dec
+                    self.model, x_enc, x_mark_enc, x_dec, x_mark_dec,
+                    text_embed=text_embed,
                 )
 
                 preds.append(pred.cpu().numpy())

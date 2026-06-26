@@ -1,0 +1,177 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-17 23:37:46",
+    "method": "fvcore.FlopCountAnalysis",
+    "n_time_features": "freq-aware (h\u21924, d\u21923)"
+  },
+  "data": [
+    {
+      "model": "DLinear",
+      "dataset": "ETTm2",
+      "params_M": 0.0186,
+      "flops_G": 0.0041
+    },
+    {
+      "model": "DLinear",
+      "dataset": "Weather",
+      "params_M": 0.0186,
+      "flops_G": 0.0124
+    },
+    {
+      "model": "DLinear",
+      "dataset": "Electricity",
+      "params_M": 0.0186,
+      "flops_G": 0.0947
+    },
+    {
+      "model": "DLinear",
+      "dataset": "Environment",
+      "params_M": 0.0186,
+      "flops_G": 0.0035
+    },
+    {
+      "model": "PatchTST",
+      "dataset": "ETTm2",
+      "params_M": 10.0563,
+      "flops_G": 25.6644
+    },
+    {
+      "model": "PatchTST",
+      "dataset": "Weather",
+      "params_M": 6.9039,
+      "flops_G": 51.4857
+    },
+    {
+      "model": "PatchTST",
+      "dataset": "Electricity",
+      "params_M": 6.9039,
+      "flops_G": 393.4981
+    },
+    {
+      "model": "PatchTST",
+      "dataset": "Environment",
+      "params_M": 6.9039,
+      "flops_G": 14.7102
+    },
+    {
+      "model": "TimesNet",
+      "dataset": "ETTm2",
+      "params_M": 1.1919,
+      "flops_G": 36.6303
+    },
+    {
+      "model": "TimesNet",
+      "dataset": "Weather",
+      "params_M": 1.1937,
+      "flops_G": 36.0187
+    },
+    {
+      "model": "TimesNet",
+      "dataset": "Electricity",
+      "params_M": 150.3048,
+      "flops_G": 2303.8923
+    },
+    {
+      "model": "TimesNet",
+      "dataset": "Environment",
+      "params_M": 1.1918,
+      "flops_G": 36.0112
+    },
+    {
+      "model": "Mamba",
+      "dataset": "ETTm2",
+      "params_M": 0.2374,
+      "flops_G": 0.7615
+    },
+    {
+      "model": "Mamba",
+      "dataset": "Weather",
+      "params_M": 0.2446,
+      "flops_G": 0.7835
+    },
+    {
+      "model": "Mamba",
+      "dataset": "Electricity",
+      "params_M": 0.3982,
+      "flops_G": 0.6277
+    },
+    {
+      "model": "Mamba",
+      "dataset": "Environment",
+      "params_M": 0.2368,
+      "flops_G": 0.7595
+    },
+    {
+      "model": "SparseTSF",
+      "dataset": "ETTm2",
+      "params_M": 0.0034,
+      "flops_G": 0.0041
+    },
+    {
+      "model": "SparseTSF",
+      "dataset": "Weather",
+      "params_M": 0.0101,
+      "flops_G": 0.0124
+    },
+    {
+      "model": "SparseTSF",
+      "dataset": "Electricity",
+      "params_M": 0.1541,
+      "flops_G": 0.0473
+    },
+    {
+      "model": "SparseTSF",
+      "dataset": "Environment",
+      "params_M": 0.0029,
+      "flops_G": 0.0035
+    },
+    {
+      "model": "KANiTransformer",
+      "dataset": "ETTm2",
+      "params_M": 118.6506,
+      "flops_G": 6.4985
+    },
+    {
+      "model": "KANiTransformer",
+      "dataset": "Weather",
+      "params_M": 177.9018,
+      "flops_G": 29.2224
+    },
+    {
+      "model": "KANiTransformer",
+      "dataset": "Electricity",
+      "params_M": 62.0281,
+      "flops_G": 87.6767
+    },
+    {
+      "model": "KANiTransformer",
+      "dataset": "Environment",
+      "params_M": 118.6506,
+      "flops_G": 5.5697
+    },
+    {
+      "model": "LiteSparseNet",
+      "dataset": "ETTm2",
+      "params_M": 0.0171,
+      "flops_G": 0.0026
+    },
+    {
+      "model": "LiteSparseNet",
+      "dataset": "Weather",
+      "params_M": 0.0515,
+      "flops_G": 0.0094
+    },
+    {
+      "model": "LiteSparseNet",
+      "dataset": "Electricity",
+      "params_M": 0.422,
+      "flops_G": 0.0374
+    },
+    {
+      "model": "LiteSparseNet",
+      "dataset": "Environment",
+      "params_M": 0.0147,
+      "flops_G": 0.0025
+    }
+  ]
+}

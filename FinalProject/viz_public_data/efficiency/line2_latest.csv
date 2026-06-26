@@ -1,0 +1,10 @@
+model,dataset,Params(M),FLOPs(G)
+KANiTransformer,ETTm2,59.399377,6.531481336
+KANiTransformer,Weather,59.399405,19.613711008
+KANiTransformer,Electricity,31.088453,44.217038336
+LiteSparseNet,ETTm2,0.036783,0.00389543
+LiteSparseNet,Weather,0.110185,0.013260504
+LiteSparseNet,Electricity,1.686021,0.058080392
+SparseTSF,ETTm2,0.006048,0.004128768
+SparseTSF,Weather,0.018144,0.012386304
+SparseTSF,Electricity,0.277344,0.047333376
