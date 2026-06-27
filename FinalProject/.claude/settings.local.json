@@ -9,7 +9,8 @@
       "Bash(./venv/Scripts/python.exe -c \"import torch; print\\(torch.__version__\\)\")",
       "Bash(./venv/Scripts/python.exe -c ':*)",
       "Bash(pip install:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(/d/code/AIBasics/.venv/Scripts/python.exe regenerate_all_figures.py)"
     ]
   }
 }
