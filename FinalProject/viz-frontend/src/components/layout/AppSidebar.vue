@@ -33,7 +33,7 @@
         <span class="nav-icon">{{ line.icons.join(" ") }}</span>
         <transition name="fade">
           <span v-if="!uiStore.sidebarCollapsed" class="nav-label">
-            <span class="nav-label-num">Line {{ line.number }}</span>
+            <span class="nav-label-num">Line {{ line.label ?? line.number }}</span>
             <span class="nav-label-text">{{ line.title }}</span>
           </span>
         </transition>

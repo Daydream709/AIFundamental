@@ -6,10 +6,16 @@ import type { ChartKind, MetricName } from "./results";
 /** An experiment line defines the scope of one comparison axis */
 export interface ExperimentLine {
   number: number;
+  /** Display label (e.g. "1", "4a", "4b"). Defaults to `String(number)` if omitted. */
+  label?: string;
   title: string; // Chinese
   subtitle: string; // English
   icons: string[]; // Emoji(s) — single line uses [icon], Line 4a uses [🧠], Line 4b uses [🪶]
   route: string; // Vue router path
+  /** Optional page file override (defaults to `Line${number}Page.vue`). Used by
+   *  Line 4a / 4b where the number is the same as Line 4/5 but the file
+   *  carries a different name. */
+  pageFile?: string;
   models: string[];
   datasets: string[];
   predLens: number[];

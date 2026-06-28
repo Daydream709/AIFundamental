@@ -57,7 +57,7 @@
         >
           <div class="line-card-icon">{{ line.icons.join(" ") }}</div>
           <div class="line-card-body">
-            <div class="line-card-num">Line {{ line.number }}</div>
+            <div class="line-card-num">Line {{ line.label ?? line.number }}</div>
             <div class="line-card-title">{{ line.title }}</div>
             <div class="line-card-desc">{{ line.description }}</div>
             <div class="line-card-meta">

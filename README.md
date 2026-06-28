@@ -1,4 +1,4 @@
-# 写给饼子哥的部署文档
+# README
 
 完整项目在 `FinalProject/` 子目录。
 
