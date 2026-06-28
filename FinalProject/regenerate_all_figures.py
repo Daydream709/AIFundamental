@@ -552,9 +552,124 @@ def fig9_ablation():
     print('  ✓ fig9_ablation.png')
 
 
+# ============================================================================
+# 图 10: Params / FLOPs 双子图 (来自表 5-8)
+# ============================================================================
+def fig10_params_flops():
+    eff = pd.read_csv(EFF)
+    models_order = ['DLinear', 'PatchTST', 'TimesNet', 'Mamba', 'SparseTSF', 'KANiTransformer', 'LiteSparseNet']
+    ds_order = ['ETTm2', 'Weather', 'Electricity', 'Environment']
+    ds_colors = {'ETTm2': '#1f77b4', 'Weather': '#ff7f0e', 'Electricity': '#2ca02c', 'Environment': '#d62728'}
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.5))
+    x = np.arange(len(models_order))
+    width = 0.2
+
+    # 左图: 参数量
+    ax = axes[0]
+    for i, ds in enumerate(ds_order):
+        params = []
+        for m in models_order:
+            row = eff[(eff['model'] == m) & (eff['dataset'] == ds)]
+            params.append(row['params_M'].iloc[0] if len(row) > 0 else 0)
+        ax.bar(x + (i - 1.5) * width, params, width, label=ds,
+               color=ds_colors[ds], edgecolor='black', linewidth=0.7)
+    ax.set_yscale('log')
+    ax.set_xticks(x)
+    ax.set_xticklabels(models_order, rotation=20, fontsize=9)
+    ax.set_ylabel('参数量 Params (M, 对数)', fontsize=11)
+    ax.set_title('参数量', fontsize=12, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=9)
+    ax.grid(True, axis='y', alpha=0.3, which='both')
+
+    # 右图: FLOPs
+    ax = axes[1]
+    for i, ds in enumerate(ds_order):
+        flops = []
+        for m in models_order:
+            row = eff[(eff['model'] == m) & (eff['dataset'] == ds)]
+            flops.append(row['flops_G'].iloc[0] if len(row) > 0 else 0)
+        ax.bar(x + (i - 1.5) * width, flops, width, label=ds,
+               color=ds_colors[ds], edgecolor='black', linewidth=0.7)
+    ax.set_yscale('log')
+    ax.set_xticks(x)
+    ax.set_xticklabels(models_order, rotation=20, fontsize=9)
+    ax.set_ylabel('浮点运算 FLOPs (G, 对数)', fontsize=11)
+    ax.set_title('FLOPs', fontsize=12, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=9)
+    ax.grid(True, axis='y', alpha=0.3, which='both')
+
+    fig.suptitle('图 5-10: 7 模型 × 4 数据集的 Params 与 FLOPs (fvcore 测量, 配置来自 MODEL_PRESETS)',
+                 fontsize=12, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(f'{SAVE_DIR}fig10_params_flops.png', dpi=150, bbox_inches='tight')
+    plt.close()
+    print('  ✓ fig10_params_flops.png')
+
+
+# ============================================================================
+# 图 11: 推理时间 / 显存 双子图 (来自表 5-8b)
+# ============================================================================
+def fig11_infer_memory():
+    df1 = pd.read_csv(LINE1)
+    df2 = pd.read_csv(LINE2)
+    df = pd.concat([df1, df2], ignore_index=True)
+    df = df[df['model'].isin(['DLinear', 'PatchTST', 'TimesNet', 'Mamba',
+                              'SparseTSF', 'KANiTransformer', 'LiteSparseNet'])]
+    df = df[df['dataset'].isin(DATASET_ORDER)]
+
+    models_order = ['DLinear', 'PatchTST', 'TimesNet', 'Mamba', 'SparseTSF', 'KANiTransformer', 'LiteSparseNet']
+    ds_colors = {'ETTm2': '#1f77b4', 'Weather': '#ff7f0e', 'Electricity': '#2ca02c'}
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.5))
+    x = np.arange(len(models_order))
+    width = 0.27
+
+    # 左图: 推理时间 (对数)
+    ax = axes[0]
+    for i, ds in enumerate(DATASET_ORDER):
+        infers = []
+        for m in models_order:
+            row = df[(df['model'] == m) & (df['dataset'] == ds) & (df['pred_len'] == 96)]
+            infers.append(row['InferTime(ms)'].iloc[0] if len(row) > 0 else 0)
+        ax.bar(x + (i - 1) * width, infers, width, label=ds,
+               color=ds_colors[ds], edgecolor='black', linewidth=0.7)
+    ax.set_yscale('log')
+    ax.set_xticks(x)
+    ax.set_xticklabels(models_order, rotation=20, fontsize=9)
+    ax.set_ylabel('推理时间 Infer (ms, 对数)', fontsize=11)
+    ax.set_title('推理时间', fontsize=12, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=9)
+    ax.grid(True, axis='y', alpha=0.3, which='both')
+
+    # 右图: 显存 (对数)
+    ax = axes[1]
+    for i, ds in enumerate(DATASET_ORDER):
+        mems = []
+        for m in models_order:
+            row = df[(df['model'] == m) & (df['dataset'] == ds) & (df['pred_len'] == 96)]
+            mems.append(row['GPUMem(MB)'].iloc[0] if len(row) > 0 else 0)
+        ax.bar(x + (i - 1) * width, mems, width, label=ds,
+               color=ds_colors[ds], edgecolor='black', linewidth=0.7)
+    ax.set_yscale('log')
+    ax.set_xticks(x)
+    ax.set_xticklabels(models_order, rotation=20, fontsize=9)
+    ax.set_ylabel('显存 GPU Memory (MB, 对数)', fontsize=11)
+    ax.set_title('显存', fontsize=12, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=9)
+    ax.grid(True, axis='y', alpha=0.3, which='both')
+
+    fig.suptitle('图 5-11: 7 模型 × 3 数据集的推理时间与显存 (line1/line2 CSV 测量, F=96)',
+                 fontsize=12, fontweight='bold')
+    plt.tight_layout()
+    plt.savefig(f'{SAVE_DIR}fig11_infer_memory.png', dpi=150, bbox_inches='tight')
+    plt.close()
+    print('  ✓ fig11_infer_memory.png')
+
+
 if __name__ == '__main__':
     print('=' * 60)
-    print('  重新生成 9 张图 (基于 results/ 最新 CSV)')
+    print('  重新生成 11 张图 (基于 results/ 最新 CSV)')
     print('=' * 60)
     fig0_pipeline()
     fig1_baseline_heatmap()
@@ -566,6 +681,8 @@ if __name__ == '__main__':
     fig7_pareto()
     fig8_multimodal()
     fig9_ablation()
+    fig10_params_flops()
+    fig11_infer_memory()
     print('=' * 60)
-    print(f'  全部 9 张图已保存到 {SAVE_DIR}')
+    print(f'  全部 11 张图已保存到 {SAVE_DIR}')
     print('=' * 60)
